@@ -1,0 +1,515 @@
+// =============================================================
+// SNEAKER E-COMMERCE - Esquema relacional de la base de datos
+// Taller de Integracion (UADER / FCyT) - Sprint 1
+//
+// Derivado del Diagrama de Clases UML (Entregable 2, v1.0).
+// Los cambios respecto del UML estan justificados en README.md,
+// seccion "Decisiones de modelado".
+// =============================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================
+// ENUMERACIONES
+// =============================================================
+
+/// RF-49 / RF-50. El rol SOPORTE no se incluye: RF-51 esta
+/// clasificado como "Won't be" hasta que el relevamiento
+/// defina sus permisos.
+enum RolUsuario {
+  ADMIN
+  CLIENTE
+  VENDEDOR
+}
+
+/// RF-02: alta, baja logica y reactivacion de productos.
+/// RF-09: los productos inactivos no se eliminan, se ocultan.
+enum EstadoProducto {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoProveedor {
+  ACTIVO
+  INACTIVO
+}
+
+/// RF-30: los cuatro estados exigidos por el cliente.
+/// CANCELADO y RECHAZADO se agregan para poder representar los
+/// flujos de RF-25 (pago rechazado) y RN-07/RNF-07 (restauracion
+/// de stock ante cancelacion).
+enum EstadoPedido {
+  CONFIRMADO
+  PREPARANDO
+  EN_CAMINO
+  RECIBIDO
+  CANCELADO
+  RECHAZADO
+}
+
+/// UML: Ingreso, Venta, Extraccion. RN-07: una extraccion nunca
+/// computa como venta, por eso son tipos separados y no un signo.
+enum TipoMovimiento {
+  INGRESO
+  VENTA
+  EXTRACCION
+}
+
+// =============================================================
+// MODULO 1 - CATALOGO, PRODUCTOS Y PROVEEDORES
+// =============================================================
+
+model Categoria {
+  id        String    @id @default(cuid())
+  nombre    String    @unique
+  slug      String    @unique
+  activa    Boolean   @default(true)
+  creadoEn  DateTime  @default(now())
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Marca {
+  id       String    @id @default(cuid())
+  nombre   String    @unique
+  slug     String    @unique
+  activa   Boolean   @default(true)
+  productos Producto[]
+
+  @@map("marcas")
+}
+
+model Proveedor {
+  id             String            @id @default(cuid())
+  razonSocial    String
+  cuit           String            @unique
+  nombreContacto String
+  telefono       String?
+  email          String?
+  direccion      String?
+  estado         EstadoProveedor   @default(ACTIVO)
+  creadoEn       DateTime          @default(now())
+  productos      Producto[]
+  movimientos    MovimientoStock[]
+
+  @@map("proveedores")
+}
+
+model Producto {
+  id          String          @id @default(cuid())
+  sku         String          @unique
+  nombre      String
+  descripcion String
+  precioVenta Decimal         @db.Decimal(12, 2)
+  costoCompra Decimal         @db.Decimal(12, 2)
+  garantia    String?
+  imagen      String?
+  estado      EstadoProducto  @default(ACTIVO)
+  creadoEn    DateTime        @default(now())
+  actualizadoEn DateTime      @updatedAt
+
+  categoria Categoria  @relation(fields: [categoriaId], references: [id])
+  categoriaId String
+
+  marca    Marca   @relation(fields: [marcaId], references: [id])
+  marcaId  String
+
+  // 0..1: un producto puede no tener proveedor asignado todavia.
+  proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
+  proveedorId String?
+
+  // Composicion fuerte: un producto exige 1..* variantes.
+  variantes VarianteProducto[]
+
+  // Kit usa herencia de Producto en el UML; Prisma no tiene
+  // herencia, asi que se materializa como 1:1 opcional.
+  kit Kit?
+
+  etiquetas     ProductoEtiqueta[]
+  favoritos     Favorito[]
+  promociones   PromocionProducto[]
+
+  @@index([estado])
+  @@index([categoriaId])
+  @@index([marcaId])
+  @@map("productos")
+}
+
+/// Hereda de Producto (UML). `stockCalculado` NO se persiste:
+/// RN-06 obliga a derivarlo del componente con menor stock, y una
+/// columna cacheada solo agrega una fuente de desincronizacion.
+/// Se calcula en src/modules/inventory/services/stock.ts.
+model Kit {
+  productoId    String           @id
+  producto      Producto         @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  componentes   KitComponente[]
+
+  @@map("kits")
+}
+
+/// Agregacion debil (UML): el kit agrupa 2..* variantes que
+/// existen de forma independiente. `cantidad` es cuantas unidades
+/// de esa variante consume cada kit.
+model KitComponente {
+  kitProductoId String
+  varianteId    String
+  cantidad      Int            @default(1)
+
+  kit     Kit              @relation(fields: [kitProductoId], references: [productoId], onDelete: Cascade)
+  variante VarianteProducto @relation(fields: [varianteId], references: [id])
+
+  @@id([kitProductoId, varianteId])
+  @@map("kit_componentes")
+}
+
+model VarianteProducto {
+  id        String   @id @default(cuid())
+  talle     String?
+  color     String?
+  material  String?
+  stockActual Int    @default(0)
+  creadoEn  DateTime @default(now())
+
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  itemsCarrito   ItemCarrito[]
+  itemsPedido    ItemPedido[]
+  movimientos    MovimientoStock[]
+  componentesKit KitComponente[]
+
+  // Evita duplicar la misma combinacion talle/color/material.
+  @@unique([productoId, talle, color, material])
+  @@index([stockActual])
+  @@map("variantes_producto")
+}
+
+model EtiquetaUso {
+  id     String  @id @default(cuid())
+  nombre String  @unique
+  slug   String  @unique
+
+  productos ProductoEtiqueta[]
+
+  @@map("etiquetas_uso")
+}
+
+/// N:M directa Producto <-> EtiquetaUso (UML).
+model ProductoEtiqueta {
+  productoId  String
+  etiquetaId  String
+
+  producto Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  etiqueta EtiquetaUso @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@id([productoId, etiquetaId])
+  @@index([etiquetaId])
+  @@map("productos_etiquetas")
+}
+
+// =============================================================
+// MODULO 2 - CLIENTES Y CUENTAS
+// =============================================================
+
+/// Clase base abstracta en el UML. Prisma no tiene abstraccion de
+/// datos: se materializa como tabla concreta y `Cliente` la
+/// especializa en una relacion 1:1.
+model Usuario {
+  id           String      @id @default(cuid())
+  usuario      String      @unique
+  correo       String      @unique
+  passwordHash String?
+  googleSub    String?     @unique
+  rol          RolUsuario  @default(CLIENTE)
+  activo       Boolean     @default(true)
+  creadoEn     DateTime    @default(now())
+
+  cliente        Cliente?
+  movimientos    MovimientoStock[]
+  suscripcion    SuscripcionNewsletter?
+
+  @@map("usuarios")
+}
+
+/// Hereda de Usuario. RN-03: `usuario` y `correo` viven en
+/// Usuario y no se editan desde el perfil (nivel de aplicacion).
+/// `dni` tambien es unico e inmutable por RF-12.
+model Cliente {
+  usuarioId String   @id
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nombre    String
+  apellido  String
+  telefono  String?
+  dni       Int?     @unique
+
+  direcciones Direccion[]
+  carrito     Carrito?
+  pedidos    Pedido[]
+  favoritos  Favorito[]
+
+  @@map("clientes")
+}
+
+/// Composicion fuerte (UML) con tope de 3 por cliente (RN-02).
+/// El tope se valida en src/modules/clients/services/direcciones.ts:
+/// la base no puede expresar "maximo 3" de forma declarativa.
+model Direccion {
+  id           String  @id @default(cuid())
+  destinatario String
+  calle        String
+  numero       String
+  piso         String?
+  departamento String?
+  ciudad       String
+  provincia    String
+  codigoPostal String?
+  predeterminada Boolean @default(false)
+  creadoEn     DateTime @default(now())
+
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [usuarioId], onDelete: Cascade)
+
+  @@index([clienteId])
+  @@map("direcciones")
+}
+
+// =============================================================
+// MODULO 3 - CARRITO, COMPRAS Y PEDIDOS
+// =============================================================
+
+/// Composicion fuerte. 1:1 con Cliente: el cliente autenticado
+/// tiene exactamente un carrito activo (UML).
+model Carrito {
+  id         String   @id @default(cuid())
+  fechaCreacion DateTime @default(now())
+  /// RN-04: vencimiento de la reserva temporal de 1 a 2 minutos.
+  /// La reserva con vida propia (por variante y por cliente) se
+  /// implementa en el Sprint 3; ver README "Pendiente Sprint 3".
+  reservaExpiracion DateTime?
+
+  clienteId String @unique
+  cliente   Cliente @relation(fields: [clienteId], references: [usuarioId], onDelete: Cascade)
+
+  items ItemCarrito[]
+
+  @@map("carritos")
+}
+
+/// Composicion fuerte (UML). Cada linea apunta a la variante
+/// fisica concreta elegida (UML: ItemCarrito -> VarianteProducto).
+model ItemCarrito {
+  id       String @id @default(cuid())
+  cantidad Int    @default(1)
+  /// Precio congelado al agregar la linea, para que el subtotal del
+  /// carrito no cambie si el administrador edita el precio del
+  /// producto entre pasos del checkout.
+  precioUnitario Decimal @db.Decimal(12, 2)
+  creadoEn DateTime     @default(now())
+
+  carritoId        String
+  carrito          Carrito          @relation(fields: [carritoId], references: [id], onDelete: Cascade)
+  varianteProductoId String
+  varianteProducto   VarianteProducto @relation(fields: [varianteProductoId], references: [id])
+
+  @@unique([carritoId, varianteProductoId])
+  @@map("items_carrito")
+}
+
+model Pedido {
+  id          String @id @default(cuid())
+  /// Numero de orden legible (UML: "id - numero de orden").
+  numeroOrden String @unique
+  fechaCreacion DateTime @default(now())
+  estado       EstadoPedido @default(CONFIRMADO)
+  /// RF-45: tarifa base en ciudad y otra por provincia.
+  costoEnvio   Decimal @db.Decimal(12, 2)
+  montoSubtotal Decimal @db.Decimal(12, 2)
+  descuentoTotal Decimal @default(0) @db.Decimal(12, 2)
+  montoTotal   Decimal @db.Decimal(12, 2)
+
+  /// Snapshot inmutable de la direccion de entrega. El UML la modela
+  /// como FK a Direccion, pero si el cliente edita o borra la
+  /// direccion despues de comprar, el pedido historico dejaria de
+  /// reflejar donde se envio (RNF-09).
+  datosEnvio Json
+
+  /// Mercado Pago (RF-24 / RF-25).
+  metodoPago      String?
+  pagoExternoId   String?
+  preferenciaId   String?
+
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [usuarioId])
+
+  /// FK informativa a la direccion usada, cuando todavia existe.
+  direccionId String?
+
+  /// RN-08: un unico cupon por compra (0..1).
+  cuponId String?
+  cupon   Cupon? @relation(fields: [cuponId], references: [id])
+
+  items        ItemPedido[]
+  promociones PedidoPromocion[]
+  movimientos  MovimientoStock[]
+
+  @@index([clienteId, fechaCreacion])
+  @@index([estado])
+  @@map("pedidos")
+}
+
+/// Linea inmutable (UML). Guarda el precio historico y ademas copia
+/// nombre y sku: RF-33 (repetir compra) y RNF-09 (consultas
+/// historicas) requieren leer el pedido aunque el producto cambie.
+model ItemPedido {
+  id       String @id @default(cuid())
+  cantidad Int
+  precioUnitario Decimal @db.Decimal(12, 2)
+  subtotal Decimal @db.Decimal(12, 2)
+  nombreProductoSnapshot String
+  skuSnapshot            String
+
+  pedidoId String
+  pedido   Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  varianteProductoId String
+  varianteProducto   VarianteProducto @relation(fields: [varianteProductoId], references: [id])
+
+  @@index([pedidoId])
+  @@map("items_pedido")
+}
+
+// =============================================================
+// MODULO 4 - MARKETING, INVENTARIO Y COMUNICACIONES
+// =============================================================
+
+model Cupon {
+  id           String   @id @default(cuid())
+  codigo       String   @unique
+  porcentajeDescuento Decimal @db.Decimal(5, 2)
+  fechaVigencia DateTime
+  /// El UML solo define fechaVigencia de arranque. Sin fecha de
+  /// cierre un cupon nunca expira, asi que se agrega la ventana
+  /// completa (fechaVigencia / fechaVigenciaFin).
+  fechaVigenciaFin DateTime?
+  descripcion String?
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
+
+  pedidos Pedido[]
+
+  @@map("cupones")
+}
+
+/// Descuento porcentual dentro de un rango de fechas (RF-41).
+model Promocion {
+  id           String   @id @default(cuid())
+  nombre       String
+  porcentajeDescuento Decimal @db.Decimal(5, 2)
+  fechaInicio  DateTime
+  fechaFin     DateTime
+  activa       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+
+  productos  PromocionProducto[]
+  pedidos    PedidoPromocion[]
+
+  @@index([fechaInicio, fechaFin])
+  @@map("promociones")
+}
+
+/// Si una promocion tiene productos asociados el descuento aplica
+/// solo a esos; si la lista esta vacia aplica a todo el catalogo.
+model PromocionProducto {
+  promocionId String
+  productoId  String
+
+  promocion Promocion @relation(fields: [promocionId], references: [id], onDelete: Cascade)
+  producto  Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@id([promocionId, productoId])
+  @@index([productoId])
+  @@map("promociones_productos")
+}
+
+model PedidoPromocion {
+  pedidoId    String
+  promocionId String
+  /// Descuento efectivamente aplicado (Decimal), para auditar.
+  montoDescontado Decimal @db.Decimal(12, 2)
+
+  pedido    Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  promocion Promocion @relation(fields: [promocionId], references: [id])
+
+  @@id([pedidoId, promocionId])
+  @@map("pedidos_promociones")
+}
+
+/// RF-43 / RF-44: suscripcion abierta, sin cuenta requerida.
+/// `correo` es unico a nivel global, no por cliente.
+model SuscripcionNewsletter {
+  id              String   @id @default(cuid())
+  correo          String   @unique
+  fechaSuscripcion DateTime @default(now())
+  activo          Boolean  @default(true)
+
+  /// 0..1 - 0..1: se enlaza al usuario si el correo ya estaba
+  /// registrado, para no duplicar la lista.
+  usuarioId String? @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("suscripciones_newsletter")
+}
+
+/// Auditoria de inventario (UML). `responsableId` es FK a Usuario
+/// en lugar del String que pedia el UML: RF-36 exige conservar la
+/// identificacion del responsable y una FK no puede quedar
+/// desincronizada ni permitir borrados fantasma.
+model MovimientoStock {
+  id        String        @id @default(cuid())
+  fecha     DateTime      @default(now())
+  tipo      TipoMovimiento
+  cantidad  Int
+  justificacion String?
+  /// Stock resultante luego de aplicar el movimiento (auditoria).
+  stockResultante Int?
+
+  varianteProductoId String
+  varianteProducto   VarianteProducto @relation(fields: [varianteProductoId], references: [id])
+
+  responsableId String
+  responsable   Usuario   @relation(fields: [responsableId], references: [id])
+
+  /// 0..1 - 0..*: un ingreso puede vincularse al proveedor origen.
+  proveedorId String?
+  proveedor   Proveedor? @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+
+  /// Trazabilidad venta -> pedido (RF-26, RF-37).
+  pedidoId String?
+  pedido   Pedido? @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
+
+  @@index([varianteProductoId, fecha])
+  @@index([tipo])
+  @@map("movimientos_stock")
+}
+
+/// N:M directa Cliente <-> Producto (UML, lista de favoritos).
+model Favorito {
+  clienteId String
+  productoId String
+  creadoEn  DateTime @default(now())
+
+  cliente  Cliente  @relation(fields: [clienteId], references: [usuarioId], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@id([clienteId, productoId])
+  @@index([productoId])
+  @@map("favoritos")
+}

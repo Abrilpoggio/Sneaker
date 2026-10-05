@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* =============================================================
+   IDENTIDAD VISUAL — RNF-03
+
+   Tokens extraidos del mockup de Figma con `npm run figma`.
+   NO son valores inventados ni aproximaciones: son los hex que
+   figuran en el archivo de diseno.
+
+   Paleta de marca: rojo #CF1A1F sobre blanco, textos en negro.
+   Tipografia: Montserrat (48 de los 68 estilos de texto del archivo
+   usan Montserrat; se descarto Inter, Work Sans, Lexend y Boldonse).
+
+   Decision documentada: en el archivo de Figma conviven tres rojos.
+   #CF1A1F (463 usos) es el principal, #7C0300 (156 usos) se usa
+   como tono oscuro para hover, y #E53935 (214 usos) queda
+   reasignado al rojo de marca. Ver README seccion 6.
+   ============================================================= */
+:root {
+  --color-marca: #cf1a1f;
+  --color-marca-hover: #7c0300;
+  --color-marca-suave: #ffcdd2;
+  --color-marca-contraste: #ffffff;
+
+  --color-fondo: #ffffff;
+  --color-fondo-suave: #f5f5f5;
+  --color-fondo-tenue: #fafafa;
+
+  --color-texto: #000000;
+  --color-texto-medio: #2c2c2c;
+  --color-texto-suave: #4e4e4e;
+  --color-texto-tenue: #9e9e9e;
+
+  --color-borde: #d9d9d9;
+  --color-borde-suave: #eeeeee;
+
+  --color-exito: #16a34a;
+  --color-aviso: #b45309;
+  --color-error: #b91c1c;
+
+  /* RN-09: el texto de las ultimas unidades tiene que saltar a la
+     vista. Se usa el rojo de marca, no un tono calido, para no
+     introducir un color que no existe en el diseno. */
+  --color-stock-bajo: #cf1a1f;
+  --color-stock-critico: #7c0300;
+
+  /* Radios observados en el archivo: 5, 10, 16, 20, 25, 30 px */
+  --radius-sm: 5px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 25px;
+  --radius-card: 30px;
+
+  /* Escala tipografica observada: 12 a 56 px, con 14/16/18/20/24
+     como tamanos de uso frecuente. */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+  --text-4xl: 32px;
+  --text-5xl: 40px;
+  --text-6xl: 56px;
+}
+
+@theme inline {
+  --color-marca: var(--color-marca);
+  --color-marca-hover: var(--color-marca-hover);
+  --color-marca-suave: var(--color-marca-suave);
+  --color-marca-contraste: var(--color-marca-contraste);
+
+  --color-fondo: var(--color-fondo);
+  --color-fondo-suave: var(--color-fondo-suave);
+  --color-fondo-tenue: var(--color-fondo-tenue);
+
+  --color-texto: var(--color-texto);
+  --color-texto-medio: var(--color-texto-medio);
+  --color-texto-suave: var(--color-texto-suave);
+  --color-texto-tenue: var(--color-texto-tenue);
+
+  --color-borde: var(--color-borde);
+  --color-borde-suave: var(--color-borde-suave);
+
+  --color-exito: var(--color-exito);
+  --color-aviso: var(--color-aviso);
+  --color-error: var(--color-error);
+  --color-stock-bajo: var(--color-stock-bajo);
+  --color-stock-critico: var(--color-stock-critico);
+
+  --font-sans: var(--font-montserrat), "Montserrat", Arial, sans-serif;
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-card: var(--radius-card);
+
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-5xl: var(--text-5xl);
+  --text-6xl: var(--text-6xl);
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-montserrat), "Montserrat", Arial, sans-serif;
+}
+
+/* Foco visible para navegacion por teclado (RNF-02). */
+:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

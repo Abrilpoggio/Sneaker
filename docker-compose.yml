@@ -1,0 +1,35 @@
+# Base de datos local para desarrollo.
+# Levantar con:  docker compose up -d
+# Ver logs con:    docker compose logs -f postgres
+# Bajar con:      docker compose down
+# Bajar y borrar el volumen (DESTRUCTIVO, borra los datos):
+#                docker compose down -v
+#
+# NOTA PARA EL EQUIPO: las credenciales de abajo son de desarrollo y
+# estan publicadas en el repositorio a proposito. Nunca reutilizar
+# esta contrasena en un entorno desplegado.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: sneaker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sneaker
+      POSTGRES_PASSWORD: sneaker_dev
+      POSTGRES_DB: sneaker
+    ports:
+      # Puerto en el HOST -> puerto del contenedor.
+      # 5433 en el host porque en esta maquina el 5432 ya lo ocupa otro
+      # Postgres. Si tenes el 5432 libre, cambiar a "5432:5432" y actualizar
+      # DATABASE_URL en .env.
+      - "5433:5432"
+    volumes:
+      - sneaker_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sneaker -d sneaker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sneaker_pgdata:
