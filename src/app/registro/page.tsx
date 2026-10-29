@@ -1,22 +1,36 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
+import {
+  AuthShell,
+  EnlaceAuthInferior,
+} from "@/modules/auth/components/auth-shell";
 import { RegistroForm } from "@/modules/auth/components/registro-form";
+import { googleOAuthHabilitado } from "@/lib/env";
+import { sesionActual, esAdmin } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Crear cuenta",
 };
 
-export default function PaginaRegistro() {
-  return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold">Crear cuenta</h1>
-      <p className="mt-1 text-sm text-texto-tenue">
-        Tu usuario y tu correo no se pueden modificar despues (RN-03).
-      </p>
+export default async function PaginaRegistro() {
+  // Precondicion de CU2 (DUP p. 17): "No tener sesion iniciada".
+  const sesion = await sesionActual();
+  if (sesion?.user) {
+    redirect(esAdmin(sesion.user.rol) ? "/admin" : "/cuenta");
+  }
 
-      <div className="mt-6">
-        <RegistroForm />
-      </div>
-    </div>
+  return (
+    <AuthShell
+      bottomContent={
+        <EnlaceAuthInferior
+          pregunta="¿Tienes una cuenta?"
+          accion="Inicia sesión"
+          href="/login"
+        />
+      }
+    >
+      <RegistroForm googleHabilitado={googleOAuthHabilitado()} />
+    </AuthShell>
   );
 }

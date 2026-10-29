@@ -9,14 +9,23 @@ import { RolUsuario } from "@/generated/prisma/enums";
 import { loginSchema } from "@/modules/auth/schemas";
 import { googleOAuthHabilitado } from "@/lib/env";
 import { vincularCuentaGoogle } from "@/modules/auth/services/google-oauth";
+import {
+  DURACION_ACCESS_TOKEN_MS,
+  DURACION_REFRESH_TOKEN_SEG,
+  emitirRefreshToken,
+  obtenerDatosUsuarioParaToken,
+  verificarFirmaRefreshToken,
+} from "@/modules/auth/services/token";
 
 /**
- * Configuracion de autenticacion (Sprint 1 - RF-12, RF-13, RF-14, RNF-08).
+ * Configuracion de autenticacion (Sprint 1 - RF-12, RF-13, RF-14, RF-49, RF-50, RNF-08).
  *
- * Estrategia JWT: el token viaja en una cookie httpOnly firmada y no se
- * guarda ninguna sesion en la base de datos. Es lo que pide el enunciado
- * del sprint ("autenticacion JWT y roles") y evita mantener una tabla de
- * sesiones que nunca se limpia.
+ * Estrategia JWT con rotacion de Refresh Token:
+ * - El token viaja en una cookie httpOnly firmada con `AUTH_SECRET`.
+ * - El Access Token tiene una ventana corta (`DURACION_ACCESS_TOKEN_MS`), y al
+ *   vencer se ejecuta la rotacion mediante `refreshToken`, verificando en
+ *   PostgreSQL que el usuario siga activo (`RN-01`) y sincronizando su rol
+ *   (`ADMIN`, `CLIENTE`, `VENDEDOR`).
  */
 
 /** RF-13: acceso con correo y contrasena. */
@@ -78,7 +87,7 @@ if (googleOAuthHabilitado()) {
 export const authConfig = {
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: DURACION_REFRESH_TOKEN_SEG,
   },
 
   pages: {
@@ -92,25 +101,108 @@ export const authConfig = {
 
   callbacks: {
     /**
-     * Copia los datos de autorizacion al token. Corre en cada peticion,
-     * asi que tiene que ser barato.
+     * Gestiona la emision inicial del JWT (Credenciales y Google OAuth) y
+     * la rotacion automatica por Refresh Token cuando expira el Access Token.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      const ahora = Date.now();
+
+      // 1. Inicio de sesion inicial
       if (user) {
-        token.sub = user.id;
-        token.rol = (user as { rol?: RolUsuario }).rol ?? RolUsuario.CLIENTE;
-        token.usuario = (user as { usuario?: string }).usuario;
+        // Si entra por Google OAuth, `user.id` es el ID de Google y no el cuid()
+        // de PostgreSQL. Consultamos la fila real en `usuarios` por correo.
+        if (account?.provider === "google" && user.email) {
+          const datosBd = await obtenerDatosUsuarioParaToken({
+            correo: user.email,
+          });
+
+          if (!datosBd) {
+            return { ...token, error: "UserInactive" as const };
+          }
+
+          return {
+            ...token,
+            sub: datosBd.id,
+            email: datosBd.correo,
+            name: datosBd.nombre,
+            rol: datosBd.rol,
+            usuario: datosBd.usuario,
+            accessTokenExpires: ahora + DURACION_ACCESS_TOKEN_MS,
+            refreshToken: emitirRefreshToken(datosBd.id, ahora),
+            error: undefined,
+          };
+        }
+
+        const userId = user.id ?? token.sub ?? "";
+        const rol = (user as { rol?: RolUsuario }).rol ?? RolUsuario.CLIENTE;
+        const nombreUsuario = (user as { usuario?: string }).usuario;
+
+        return {
+          ...token,
+          sub: userId,
+          rol,
+          usuario: nombreUsuario,
+          accessTokenExpires: ahora + DURACION_ACCESS_TOKEN_MS,
+          refreshToken: emitirRefreshToken(userId, ahora),
+          error: undefined,
+        };
       }
-      return token;
+
+      // 2. Peticiones subsiguientes dentro de la ventana de validez del Access Token
+      if (
+        typeof token.accessTokenExpires === "number" &&
+        ahora < token.accessTokenExpires &&
+        !token.error
+      ) {
+        return token;
+      }
+
+      // 3. El Access Token expiro: rotacion mediante Refresh Token
+      if (
+        !token.sub ||
+        typeof token.refreshToken !== "string" ||
+        !verificarFirmaRefreshToken(token.refreshToken, token.sub)
+      ) {
+        return { ...token, error: "RefreshTokenExpired" as const };
+      }
+
+      const datosActualizados = await obtenerDatosUsuarioParaToken({
+        id: token.sub,
+      });
+
+      // RN-01: si el usuario fue desactivado, se invalida la sesion.
+      if (!datosActualizados) {
+        return { ...token, error: "UserInactive" as const };
+      }
+
+      return {
+        ...token,
+        sub: datosActualizados.id,
+        email: datosActualizados.correo,
+        name: datosActualizados.nombre,
+        rol: datosActualizados.rol,
+        usuario: datosActualizados.usuario,
+        accessTokenExpires: ahora + DURACION_ACCESS_TOKEN_MS,
+        refreshToken: emitirRefreshToken(datosActualizados.id, ahora),
+        error: undefined,
+      };
     },
 
-    /** Expone el rol al resto de la aplicacion. RNF-08 depende de esto. */
+    /** Expone el rol y el estado del token al resto de la aplicacion (RNF-08). */
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.rol = (token.rol as RolUsuario) ?? RolUsuario.CLIENTE;
         session.user.usuario = token.usuario as string | undefined;
       }
+      session.accessTokenExpires =
+        typeof token.accessTokenExpires === "number"
+          ? token.accessTokenExpires
+          : undefined;
+      session.error =
+        token.error === "RefreshTokenExpired" || token.error === "UserInactive"
+          ? token.error
+          : undefined;
       return session;
     },
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Montserrat } from "next/font/google";
 
 import "./globals.css";
@@ -28,13 +29,17 @@ export const metadata: Metadata = {
   keywords: ["sneakers", "zapatillas", "calzado deportivo", "Argentina"],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <html
       lang="es-AR"
       className={`${montserrat.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overflow-x-clip">
         <Providers>
           {/* Skip link: RNF-02, permite saltar al contenido con teclado. */}
           <a

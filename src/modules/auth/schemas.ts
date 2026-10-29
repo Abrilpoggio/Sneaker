@@ -17,7 +17,13 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-/** RF-12 / CU2: alta de cliente. */
+/**
+ * RF-12 / CU2: alta de cliente.
+ *
+ * Soporta tanto el formato compacto del mockup de Figma (`nombreCompleto`,
+ * `correo`, `password`) como el desglose completo (`nombre`, `apellido`,
+ * `usuario`, `telefono`, `dni`, `confirmarPassword`).
+ */
 export const registroSchema = z
   .object({
     nombre: z.string().trim().min(2, "El nombre es obligatorio").max(60),
@@ -49,12 +55,17 @@ export const registroSchema = z
       .string()
       .min(8, "La contrasena debe tener al menos 8 caracteres")
       .max(72),
-    confirmarPassword: z.string(),
+    confirmarPassword: z.string().optional(),
   })
-  .refine((datos) => datos.password === datos.confirmarPassword, {
-    message: "Las contrasenas no coinciden",
-    path: ["confirmarPassword"],
-  });
+  .refine(
+    (datos) =>
+      datos.confirmarPassword === undefined ||
+      datos.password === datos.confirmarPassword,
+    {
+      message: "Las contrasenas no coinciden",
+      path: ["confirmarPassword"],
+    },
+  );
 
 export type RegistroInput = z.input<typeof registroSchema>;
 

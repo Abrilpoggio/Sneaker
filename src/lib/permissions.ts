@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { RolUsuario } from "@/generated/prisma/enums";
 
 /**
- * RNF-08: control de acceso por rol.
+ * RNF-08 / RF-49 / RF-50: control de acceso por rol (RBAC).
  *
  * Todas estas funciones corren en el servidor (server component, server
  * action o route handler). El `proxy.ts` solo hace una redireccion
@@ -13,23 +13,35 @@ import { RolUsuario } from "@/generated/prisma/enums";
  * unico que no se puede esquivar desde el navegador.
  *
  * El tipo se escribe a mano en vez de usar `ReturnType<typeof auth>`: la
- * variable `auth` de Auth.js es una interseccion de sobrecargas (serve para
+ * variable `auth` de Auth.js es una interseccion de sobrecargas (sirve para
  * middleware, route handlers y pages router) y `ReturnType` termina
  * resolviendo a la firma equivocada.
  */
 export type Sesion = Session | null;
 
 export async function sesionActual(): Promise<Sesion> {
-  return await auth();
+  const sesion = await auth();
+  if (!sesion?.user || sesion.error) {
+    return null;
+  }
+  return sesion;
 }
 
 export function esAdmin(rol: RolUsuario | undefined | null): boolean {
   return rol === RolUsuario.ADMIN;
 }
 
-/** Exige sesion iniciada. RN-01: sin sesion no hay carrito ni compras. */
+export function esVendedor(rol: RolUsuario | undefined | null): boolean {
+  return rol === RolUsuario.VENDEDOR;
+}
+
+export function esCliente(rol: RolUsuario | undefined | null): boolean {
+  return rol === RolUsuario.CLIENTE;
+}
+
+/** Exige sesion iniciada y vigente. RN-01: sin sesion no hay carrito ni compras. */
 export async function requireSesion(): Promise<Session> {
-  const sesion = await auth();
+  const sesion = await sesionActual();
 
   if (!sesion?.user) {
     redirect("/login");
@@ -38,17 +50,31 @@ export async function requireSesion(): Promise<Session> {
   return sesion;
 }
 
-/** RNF-08: panel de administracion exclusivo para ADMIN. */
-export async function requireAdmin(): Promise<Session> {
+/**
+ * Exige que el usuario autenticado posea uno de los roles permitidos (RF-49).
+ */
+export async function requireRol(
+  rolesPermitidos: readonly RolUsuario[],
+): Promise<Session> {
   const sesion = await requireSesion();
 
-  if (sesion.user.rol !== RolUsuario.ADMIN) {
-    // No se revela que la ruta existe: se manda al inicio igual que
-    // si no hubiera sesion.
+  if (!rolesPermitidos.includes(sesion.user.rol)) {
     redirect("/");
   }
 
   return sesion;
+}
+
+/** RNF-08: panel de administracion exclusivo para ADMIN. */
+export async function requireAdmin(): Promise<Session> {
+  return await requireRol([RolUsuario.ADMIN]);
+}
+
+/**
+ * RF-49 / RF-50: acceso para personal operativo (VENDEDOR o ADMIN).
+ */
+export async function requireVendedor(): Promise<Session> {
+  return await requireRol([RolUsuario.VENDEDOR, RolUsuario.ADMIN]);
 }
 
 /**
@@ -57,11 +83,5 @@ export async function requireAdmin(): Promise<Session> {
  * sin crear una cuenta de prueba cada vez.
  */
 export async function requireCliente(): Promise<Session> {
-  const sesion = await requireSesion();
-
-  if (sesion.user.rol === RolUsuario.VENDEDOR) {
-    redirect("/");
-  }
-
-  return sesion;
+  return await requireRol([RolUsuario.CLIENTE, RolUsuario.ADMIN]);
 }

@@ -6,15 +6,34 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { signIn, signOut } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { loginSchema, registroSchema } from "@/modules/auth/schemas";
-import { registrarCliente } from "@/modules/auth/services/usuarios";
+import {
+  loginSchema,
+  recuperacionSchema,
+  registroSchema,
+} from "@/modules/auth/schemas";
+import {
+  generarUsuarioUnico,
+  registrarCliente,
+  verificarDuplicadosRegistro,
+} from "@/modules/auth/services/usuarios";
 
 export type EstadoFormulario = {
   error?: string;
   exito?: string;
   erroresCampos?: Record<string, string>;
 };
+
+function aMapaErrores(
+  fieldErrors: Record<string, string[] | undefined>,
+): Record<string, string> {
+  const salida: Record<string, string> = {};
+  for (const [clave, mensajes] of Object.entries(fieldErrors)) {
+    if (mensajes && mensajes[0]) {
+      salida[clave] = mensajes[0];
+    }
+  }
+  return salida;
+}
 
 /**
  * RF-12 / RF-13: inicio de sesion con credenciales.
@@ -35,7 +54,7 @@ export async function accionIniciarSesion(
   if (!parsed.success) {
     return {
       error: "Revisa los datos del formulario.",
-      erroresCampos: parsed.error.flatten().fieldErrors as Record<string, string>,
+      erroresCampos: aMapaErrores(parsed.error.flatten().fieldErrors),
     };
   }
 
@@ -66,8 +85,7 @@ export async function accionIniciarSesion(
       };
     }
     // Cualquier otro error es un fallo real (base de datos caida, error de
-    // configuracion). Se relanza para que quede registrado en el log del
-    // servidor en lugar de mostrarse como un mensaje generico al usuario.
+    // configuracion o el NEXT_REDIRECT de Next.js). Se relanza.
     throw error;
   }
 
@@ -78,55 +96,90 @@ export async function accionIniciarSesion(
 /**
  * RF-12 / CU2: alta de cuenta.
  *
+ * Soporta tanto el campo `nombreCompleto` del mockup de Figma (`Vista 5 -> Registro`)
+ * como los campos individuales `nombre`, `apellido`, `usuario`, `telefono` y `dni`.
+ *
  * Nota de seguridad: el formulario no acepta el rol. RF-50 prohibe que los
  * perfiles VENDEDOR se den de alta desde el sitio; el ADMIN solo se crea
- * desde la semilla de datos. Por eso el schema de registro ni siquiera
- * incluye un campo de rol.
+ * desde la semilla de datos.
  */
 export async function accionRegistrar(
   _estadoPrevio: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
-  const parsed = registroSchema.safeParse({
-    nombre: formData.get("nombre"),
-    apellido: formData.get("apellido"),
-    usuario: formData.get("usuario"),
-    correo: formData.get("correo"),
-    telefono: formData.get("telefono") ?? "",
-    dni: formData.get("dni") ? formData.get("dni") : undefined,
-    password: formData.get("password"),
-    confirmarPassword: formData.get("confirmarPassword"),
-  });
-
-  if (!parsed.success) {
+  if (formData.has("nombreCompleto") && !formData.get("aceptaTerminos")) {
     return {
-      error: "Revisa los datos del formulario.",
-      erroresCampos: parsed.error.flatten().fieldErrors as Record<string, string>,
+      error: "Debes aceptar los términos y condiciones para registrarte.",
+      erroresCampos: {
+        aceptaTerminos: "Debes aceptar los términos y condiciones.",
+      },
     };
   }
 
-  // `confirmarPassword` solo se usa para validar que las dos contrasenas
-  // coinciden; no se persiste, asi que se descarta del resto.
-  const datos = { ...parsed.data };
-  delete (datos as Partial<typeof datos>).confirmarPassword;
-  const correo = datos.correo.toLowerCase();
+  const nombreCompletoRaw = formData.get("nombreCompleto");
+  let nombreRaw = formData.get("nombre");
+  let apellidoRaw = formData.get("apellido");
 
-  const existentes = await prisma.usuario.findMany({
-    where: {
-      OR: [{ correo }, { usuario: datos.usuario }],
-      ...(datos.dni ? [{ dni: datos.dni }] : []),
-    },
-    select: { correo: true, usuario: true },
+  if (
+    typeof nombreCompletoRaw === "string" &&
+    nombreCompletoRaw.trim().length > 0 &&
+    !nombreRaw
+  ) {
+    const partes = nombreCompletoRaw.trim().split(/\s+/);
+    nombreRaw = partes[0] ?? "";
+    apellidoRaw = partes.slice(1).join(" ") || partes[0] || "Cliente";
+  }
+
+  const correoRaw =
+    typeof formData.get("correo") === "string"
+      ? (formData.get("correo") as string).trim().toLowerCase()
+      : "";
+
+  let usuarioRaw = formData.get("usuario");
+  if (
+    (!usuarioRaw ||
+      (typeof usuarioRaw === "string" && usuarioRaw.trim().length === 0)) &&
+    correoRaw
+  ) {
+    usuarioRaw = await generarUsuarioUnico(correoRaw);
+  }
+
+  const confirmarPasswordRaw = formData.get("confirmarPassword");
+
+  const parsed = registroSchema.safeParse({
+    nombre: nombreRaw,
+    apellido: apellidoRaw,
+    usuario: usuarioRaw,
+    correo: correoRaw,
+    telefono: formData.get("telefono") ?? "",
+    dni: formData.get("dni") ? formData.get("dni") : undefined,
+    password: formData.get("password"),
+    confirmarPassword:
+      typeof confirmarPasswordRaw === "string"
+        ? confirmarPasswordRaw
+        : undefined,
   });
 
-  const erroresCampos: Record<string, string> = {};
+  if (!parsed.success) {
+    const errores = aMapaErrores(parsed.error.flatten().fieldErrors);
+    if (errores.nombre && !errores.nombreCompleto) {
+      errores.nombreCompleto = errores.nombre;
+    }
+    return {
+      error: "Revisa los datos del formulario.",
+      erroresCampos: errores,
+    };
+  }
 
-  if (existentes.some((u) => u.correo === correo)) {
-    erroresCampos.correo = "Ese correo ya esta registrado.";
-  }
-  if (existentes.some((u) => u.usuario === datos.usuario)) {
-    erroresCampos.usuario = "Ese nombre de usuario ya existe.";
-  }
+  const datos = parsed.data;
+  const correo = datos.correo.trim().toLowerCase();
+  const usuario = datos.usuario.trim().toLowerCase();
+
+  const erroresCampos = await verificarDuplicadosRegistro({
+    correo,
+    usuario,
+    dni: datos.dni ?? null,
+  });
 
   if (Object.keys(erroresCampos).length > 0) {
     return { error: "No pudimos crear la cuenta.", erroresCampos };
@@ -138,21 +191,48 @@ export async function accionRegistrar(
     await registrarCliente({
       nombre: datos.nombre,
       apellido: datos.apellido,
-      usuario: datos.usuario,
+      usuario,
       correo,
       telefono: datos.telefono || undefined,
       dni: datos.dni ?? null,
       passwordHash,
     });
   } catch {
-    // La carrera entre dos registros simultaneos con el mismo correo la
-    // resuelve el UNIQUE de la base; aca solo se evita que el error de
+    // La carrera entre dos registros simultaneos con el mismo correo/usuario/dni
+    // la resuelve el UNIQUE de la base; aca solo se evita que el error de
     // constraint llegue crudo al usuario.
     return { error: "No pudimos crear la cuenta. Intenta de nuevo." };
   }
 
   revalidatePath("/login");
   redirect("/login?exito=Cuenta+creada.+Ya+podés+ingresar.");
+}
+
+/**
+ * RF-14: solicitud de recuperacion de contrasena (`Vista 5 -> Recuperacion de contrasena`).
+ *
+ * Por seguridad (prevencion de enumeracion de cuentas), responde con el mismo
+ * mensaje tanto si el correo existe como si no.
+ */
+export async function accionRecuperarPassword(
+  _estadoPrevio: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const parsed = recuperacionSchema.safeParse({
+    correo: formData.get("correo"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "Ingresa un correo electronico valido.",
+      erroresCampos: aMapaErrores(parsed.error.flatten().fieldErrors),
+    };
+  }
+
+  return {
+    exito:
+      "Si el correo esta vinculado a una cuenta, recibiras un enlace para restablecer tu contrasena.",
+  };
 }
 
 /**

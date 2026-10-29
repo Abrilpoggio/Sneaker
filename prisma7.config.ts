@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -10,6 +10,11 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Fallback por defecto al contenedor de docker-compose.yml para que
+    // `prisma generate` (ejecutado en `npm install` via postinstall) funcione
+    // incluso en un repositorio recien clonado antes de crear el archivo .env.
+    url:
+      process.env.DATABASE_URL ??
+      "postgresql://sneaker:sneaker_dev@localhost:5433/sneaker?schema=public",
   },
 });

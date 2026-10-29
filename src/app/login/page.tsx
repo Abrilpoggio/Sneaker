@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
+import {
+  AuthShell,
+  EnlaceAuthInferior,
+} from "@/modules/auth/components/auth-shell";
 import { LoginForm } from "@/modules/auth/components/login-form";
 import { googleOAuthHabilitado } from "@/lib/env";
+import { sesionActual, esAdmin } from "@/lib/permissions";
 
 export const metadata: Metadata = {
-  title: "Ingresar",
+  title: "Iniciar sesión",
 };
 
 export default async function PaginaLogin({
@@ -19,31 +25,46 @@ export default async function PaginaLogin({
   const params = await searchParams;
 
   const callbackUrl =
-    typeof params.callbackUrl === "string" ? params.callbackUrl : "/cuenta";
+    typeof params.callbackUrl === "string" &&
+    params.callbackUrl.startsWith("/") &&
+    !params.callbackUrl.startsWith("//")
+      ? params.callbackUrl
+      : "/cuenta";
+
+  // Precondicion de CU2 (DUP p. 17): "No tener sesion iniciada".
+  const sesion = await sesionActual();
+  if (sesion?.user) {
+    redirect(
+      esAdmin(sesion.user.rol) && callbackUrl === "/cuenta"
+        ? "/admin"
+        : callbackUrl,
+    );
+  }
+
   const exito = typeof params.exito === "string" ? params.exito : undefined;
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold">Ingresar</h1>
-      <p className="mt-1 text-sm text-texto-tenue">
-        Para comprar o guardar favoritos necesitas una cuenta.
-      </p>
-
-      {exito && (
-        <p
-          role="status"
-          className="mt-4 rounded-md bg-fondo-suave px-3 py-2 text-sm"
-        >
-          {exito}
-        </p>
-      )}
-
-      <div className="mt-6">
-        <LoginForm
-          callbackUrl={callbackUrl}
-          googleHabilitado={googleOAuthHabilitado()}
-        />
-      </div>
-    </div>
+    <AuthShell
+      bottomContent={
+        <>
+          <EnlaceAuthInferior
+            pregunta="¿No tienes una cuenta?"
+            accion="Regístrate"
+            href="/registro"
+          />
+          <EnlaceAuthInferior
+            pregunta="¿Olvidaste tu contraseña?"
+            accion="Pide ayuda"
+            href="/recuperar"
+          />
+        </>
+      }
+    >
+      <LoginForm
+        callbackUrl={callbackUrl}
+        googleHabilitado={googleOAuthHabilitado()}
+        mensajeExito={exito}
+      />
+    </AuthShell>
   );
 }

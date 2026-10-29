@@ -1,118 +1,151 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 
-import { accionIniciarSesion, type EstadoFormulario } from "../actions";
 import { signIn } from "@/lib/auth-client";
+import {
+  accionIniciarSesion,
+  type EstadoFormulario,
+} from "@/modules/auth/actions";
+import { AuthCheckbox, GoogleIcon } from "./auth-shell";
+
+const estadoInicial: EstadoFormulario = {};
+
+interface Props {
+  callbackUrl: string;
+  googleHabilitado?: boolean;
+  mensajeExito?: string;
+}
 
 /**
- * Formulario de acceso (RF-12, RF-13).
+ * Tarjeta de Inicio de sesion reconstruida 1:1 desde el mockup de Figma.
  *
- * El cliente valida por comodidad, pero la decision real ocurre en la
- * server action. Por eso los mensajes de error que llegan en `estado` son
- * los del servidor.
+ * Fuente: `Vista 5: Autenticacion (Login / Registro / Recuperacion)` ->
+ * frame `Inicio de sesión` (`id: "226:1105"`), tarjeta `Frame 87` (`id: "226:1524"`).
+ *
+ * Especificaciones exactas del nodo en Figma:
+ * - Card (`Rectangle 4`): 469 x 440 px, border-radius 40px,
+ *   gradiente lineal vertical `rgba(255, 0, 7, 0.8)` -> `#990004`,
+ *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`
+ * - Titulo: "INICIAR SESIÓN", Montserrat 24px / 600 / lh29, #FFFFFF
+ * - Inputs: 328 x 54 px, border-radius 40px, #FFFFFF,
+ *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`,
+ *   placeholder 16px / 400 #2C2C2C
+ * - Checkbox: 13 x 13 px, radio 2px, #D9D9D9 + texto "Recordarme" 13px / 400 #FFFFFF
+ * - Boton principal: 115 x 44 px, radio 9px, #2C2C2C,
+ *   sombra `6px 5px 6.5px rgba(0,0,0,0.25), inset 0 4px 4px rgba(0,0,0,0.25)`,
+ *   texto "Ingresar" 24px / 400 #FFFFFF
+ * - Separador: linea blanca de 371px, 2px
+ * - Boton Gmail: 241 x 54 px, radio 40px, #FFFFFF,
+ *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`,
+ *   texto "Ingresar con gmail" 16px / 600 #000000
  */
-export function LoginForm({
-  callbackUrl,
-  googleHabilitado,
-}: {
-  callbackUrl: string;
-  googleHabilitado: boolean;
-}) {
-  const [estado, enviar, pendiente] = useActionState<EstadoFormulario, FormData>(
+export function LoginForm({ callbackUrl, mensajeExito }: Props) {
+  const [estado, formAction, pendiente] = useActionState(
     accionIniciarSesion,
-    {},
+    estadoInicial,
   );
 
-  const errorCampo = (campo: string) => estado?.erroresCampos?.[campo];
-
   return (
-    <form action={enviar} className="flex flex-col gap-4">
-      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+    <div className="flex min-h-[440px] w-full max-w-[469px] flex-col items-center rounded-[40px] bg-[linear-gradient(180deg,rgba(255,0,7,0.8)_0%,rgba(153,0,4,1)_100%)] px-6 pt-[37px] pb-[32px] shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)]">
+      <h1 className="text-center text-[24px] font-semibold leading-[29px] uppercase text-white">
+        INICIAR SESIÓN
+      </h1>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="correo" className="text-sm font-medium">
-          Correo
-        </label>
-        <input
-          id="correo"
-          name="correo"
-          type="email"
-          autoComplete="email"
-          required
-          aria-invalid={Boolean(errorCampo("correo"))}
-          aria-describedby={errorCampo("correo") ? "error-correo" : undefined}
-          className="h-10 rounded-md border border-borde px-3 text-sm"
-        />
-        {errorCampo("correo") && (
-          <p id="error-correo" className="text-xs text-stock-critico">
-            {errorCampo("correo")}
-          </p>
-        )}
-      </div>
+      {mensajeExito && (
+        <p
+          role="status"
+          className="mt-3 w-full max-w-[328px] rounded-xl bg-white/95 px-4 py-2 text-center text-xs font-medium text-[#2C2C2C]"
+        >
+          {mensajeExito}
+        </p>
+      )}
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-medium">
-          Contrasena
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          aria-invalid={Boolean(errorCampo("password"))}
-          aria-describedby={errorCampo("password") ? "error-password" : undefined}
-          className="h-10 rounded-md border border-borde px-3 text-sm"
-        />
-        {errorCampo("password") && (
-          <p id="error-password" className="text-xs text-stock-critico">
-            {errorCampo("password")}
-          </p>
-        )}
-      </div>
-
-      {estado?.error && (
-        <p role="alert" className="rounded-md bg-stock-critico/10 px-3 py-2 text-sm text-stock-critico">
+      {estado.error && (
+        <p
+          role="alert"
+          className="mt-3 w-full max-w-[328px] rounded-xl bg-[#2C2C2C] px-4 py-2 text-center text-xs font-medium text-white"
+        >
           {estado.error}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pendiente}
-        className="h-10 rounded-md bg-marca text-sm font-medium text-marca-contraste disabled:opacity-60"
+      <form
+        action={formAction}
+        noValidate
+        className="mt-[25px] flex w-full flex-col items-center"
       >
-        {pendiente ? "Ingresando..." : "Ingresar"}
-      </button>
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
-      {googleHabilitado && (
-        <>
-          <div className="flex items-center gap-3 text-xs text-texto-tenue">
-            <span className="h-px flex-1 bg-borde" />
-            o
-            <span className="h-px flex-1 bg-borde" />
+        <div className="flex w-full max-w-[328px] flex-col gap-[19px]">
+          <div>
+            <input
+              id="correo"
+              name="correo"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="Correo electrónico"
+              aria-label="Correo electrónico"
+              aria-invalid={Boolean(estado.erroresCampos?.correo)}
+              className="h-[54px] w-full rounded-[40px] bg-white px-6 text-[16px] font-normal leading-[19px] text-black shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] outline-none placeholder:text-black/70 focus:ring-2 focus:ring-[#2C2C2C]"
+            />
+            {estado.erroresCampos?.correo && (
+              <p className="mt-1 px-4 text-xs font-medium text-white">
+                {estado.erroresCampos.correo}
+              </p>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => void signIn("google", { redirectTo: callbackUrl })}
-            className="h-10 rounded-md border border-borde text-sm font-medium hover:border-marca transition-colors"
-          >
-            Continuar con Google
-          </button>
-        </>
-      )}
+          <div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              placeholder="Contraseña"
+              aria-label="Contraseña"
+              aria-invalid={Boolean(estado.erroresCampos?.password)}
+              className="h-[54px] w-full rounded-[40px] bg-white px-6 text-[16px] font-normal leading-[19px] text-black shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] outline-none placeholder:text-black/70 focus:ring-2 focus:ring-[#2C2C2C]"
+            />
+            {estado.erroresCampos?.password && (
+              <p className="mt-1 px-4 text-xs font-medium text-white">
+                {estado.erroresCampos.password}
+              </p>
+            )}
+          </div>
+        </div>
 
-      <div className="flex flex-col gap-1 text-sm text-texto-tenue">
-        <Link href="/registro" className="hover:text-acento">
-          No tengo cuenta, quiero registrarme
-        </Link>
-        {/* RF-14: el envio del correo de recuperacion se completa en el
-            Sprint 2, cuando se elija el proveedor de correo. */}
-        <span className="opacity-60">Olvide mi contrasena (proximamente)</span>
-      </div>
-    </form>
+        {/* Checkbox Recordarme (Frame 89: gap 6px, 13x13 #D9D9D9, radio 2px) */}
+        <div className="mt-[14px] w-full max-w-[328px]">
+          <AuthCheckbox name="recordarme" label="Recordarme" />
+        </div>
+
+        {/* Boton Ingresar (Frame 10: 115 x 44, #2C2C2C, radio 9px) */}
+        <button
+          type="submit"
+          disabled={pendiente}
+          className="mt-[18px] flex h-[44px] w-[115px] items-center justify-center rounded-[9px] bg-[#2C2C2C] text-[24px] font-normal leading-[29px] text-white shadow-[6px_5px_6.5px_rgba(0,0,0,0.25),inset_0_4px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          {pendiente ? "..." : "Ingresar"}
+        </button>
+      </form>
+
+      {/* Separador blanco (Line 10: 371px, 2px) */}
+      <div className="mt-[20px] h-[2px] w-full max-w-[371px] bg-white" />
+
+      {/* Boton Ingresar con gmail (Frame 100: 241 x 54, radio 40px, #FFFFFF) */}
+      <button
+        type="button"
+        onClick={() => void signIn("google", { callbackUrl })}
+        className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
+      >
+        <GoogleIcon />
+        <span className="text-[16px] font-semibold leading-[19px] text-black">
+          Ingresar con gmail
+        </span>
+      </button>
+    </div>
   );
 }
