@@ -20,8 +20,20 @@ import {
 export type EstadoFormulario = {
   error?: string;
   exito?: string;
+  redirectTo?: string;
   erroresCampos?: Record<string, string>;
 };
+
+const RUTAS_AUTH = ["/login", "/registro", "/recuperar"];
+
+function normalizarCallbackUrl(valor: FormDataEntryValue | null): string {
+  if (typeof valor !== "string") return "/";
+  const limpio = valor.trim();
+  if (!limpio.startsWith("/") || limpio.startsWith("//")) return "/";
+  const soloPathname = limpio.split("?")[0] ?? "/";
+  if (RUTAS_AUTH.includes(soloPathname)) return "/";
+  return limpio;
+}
 
 function aMapaErrores(
   fieldErrors: Record<string, string[] | undefined>,
@@ -58,21 +70,15 @@ export async function accionIniciarSesion(
     };
   }
 
-  // Solo se aceptan rutas internas como destino de retorno: si se acepta
-  // cualquiera, un atacante puede craftar un link de login que al iniciar
-  // sesion manda a la victima a un sitio suyo.
-  const destinoSolicitado = formData.get("callbackUrl");
-  const destino =
-    typeof destinoSolicitado === "string" &&
-    destinoSolicitado.startsWith("/") &&
-    !destinoSolicitado.startsWith("//")
-      ? destinoSolicitado
-      : "/cuenta";
+  // Solo se aceptan rutas internas como destino de retorno: si no se envio
+  // ninguna, vuelve al main principal (`/`).
+  const destino = normalizarCallbackUrl(formData.get("callbackUrl"));
 
   try {
     await signIn("credentials", {
       correo: parsed.data.correo,
       password: parsed.data.password,
+      redirect: false,
       redirectTo: destino,
     });
   } catch (error) {
@@ -84,13 +90,11 @@ export async function accionIniciarSesion(
             : "No se pudo iniciar sesion. Intenta de nuevo.",
       };
     }
-    // Cualquier otro error es un fallo real (base de datos caida, error de
-    // configuracion o el NEXT_REDIRECT de Next.js). Se relanza.
     throw error;
   }
 
-  // signIn redirige en caso de exito, asi que la ejecucion no llega aca.
-  return { exito: "Sesion iniciada." };
+  revalidatePath("/", "layout");
+  return { exito: "Sesion iniciada.", redirectTo: destino };
 }
 
 /**
@@ -204,8 +208,16 @@ export async function accionRegistrar(
     return { error: "No pudimos crear la cuenta. Intenta de nuevo." };
   }
 
+  const destino = normalizarCallbackUrl(formData.get("callbackUrl"));
+  const qs = new URLSearchParams({
+    exito: "Cuenta creada. Ya podés ingresar.",
+  });
+  if (destino !== "/") {
+    qs.set("callbackUrl", destino);
+  }
+
   revalidatePath("/login");
-  redirect("/login?exito=Cuenta+creada.+Ya+podés+ingresar.");
+  redirect(`/login?${qs.toString()}`);
 }
 
 /**

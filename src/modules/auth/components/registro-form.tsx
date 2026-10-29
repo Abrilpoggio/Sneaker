@@ -12,35 +12,11 @@ import { AuthCheckbox, GoogleIcon } from "./auth-shell";
 const estadoInicial: EstadoFormulario = {};
 
 interface Props {
+  callbackUrl?: string;
   googleHabilitado?: boolean;
 }
 
-/**
- * Tarjeta de Registro reconstruida 1:1 desde el mockup de Figma.
- *
- * Fuente: `Vista 5: Autenticacion (Login / Registro / Recuperacion)` ->
- * frame `Registro` (`id: "226:616"`), tarjeta `Frame 83` (`id: "226:1056"`).
- *
- * Especificaciones exactas del nodo en Figma:
- * - Card (`Rectangle 4`, `226:1058`): 469 x 519 px, border-radius 40px,
- *   gradiente lineal vertical `rgba(255, 0, 7, 0.8)` -> `#990004`,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`
- * - Titulo: "CREAR CUENTA", Montserrat 24px / 600 / lh29, #FFFFFF
- * - 3 Inputs (gap 18px): 328 x 54 px, border-radius 40px, #FFFFFF,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`:
- *   1. "Nombre completo"
- *   2. "Correo electrónico"
- *   3. "Contraseña"
- * - Checkbox: 13 x 13 px, radio 2px, #D9D9D9 + texto "Acepto los terminos y condiciones" 13px / 400 #FFFFFF
- * - Boton principal: 163 x 39 px, radio 9px, #2C2C2C,
- *   sombra `6px 5px 6.5px rgba(0,0,0,0.25), inset 0 4px 4px rgba(0,0,0,0.25)`,
- *   texto "Registrarme" 24px / 400 #FFFFFF
- * - Separador: linea blanca de 371px, 2px
- * - Boton Gmail: 241 x 54 px, radio 40px, #FFFFFF,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`,
- *   texto "Ingresar con gmail" 16px / 600 #000000
- */
-export function RegistroForm(_props: Props) {
+export function RegistroForm({ callbackUrl = "/" }: Props) {
   const [estado, formAction, pendiente] = useActionState(
     accionRegistrar,
     estadoInicial,
@@ -66,6 +42,7 @@ export function RegistroForm(_props: Props) {
         noValidate
         className="mt-[20px] flex w-full flex-col items-center"
       >
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <div className="flex w-full max-w-[328px] flex-col gap-[18px]">
           <div>
             <input
@@ -160,7 +137,7 @@ export function RegistroForm(_props: Props) {
       {/* Boton Ingresar con gmail (Frame 101: 241 x 54, radio 40px, #FFFFFF) */}
       <button
         type="button"
-        onClick={() => void signIn("google", { callbackUrl: "/cuenta" })}
+        onClick={() => void signIn("google", { callbackUrl })}
         className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
       >
         <GoogleIcon />

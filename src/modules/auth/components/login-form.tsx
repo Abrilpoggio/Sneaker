@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-import { signIn } from "@/lib/auth-client";
+import { signIn, useSesion } from "@/lib/auth-client";
 import {
   accionIniciarSesion,
   type EstadoFormulario,
@@ -17,34 +18,33 @@ interface Props {
   mensajeExito?: string;
 }
 
-/**
- * Tarjeta de Inicio de sesion reconstruida 1:1 desde el mockup de Figma.
- *
- * Fuente: `Vista 5: Autenticacion (Login / Registro / Recuperacion)` ->
- * frame `Inicio de sesión` (`id: "226:1105"`), tarjeta `Frame 87` (`id: "226:1524"`).
- *
- * Especificaciones exactas del nodo en Figma:
- * - Card (`Rectangle 4`): 469 x 440 px, border-radius 40px,
- *   gradiente lineal vertical `rgba(255, 0, 7, 0.8)` -> `#990004`,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`
- * - Titulo: "INICIAR SESIÓN", Montserrat 24px / 600 / lh29, #FFFFFF
- * - Inputs: 328 x 54 px, border-radius 40px, #FFFFFF,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`,
- *   placeholder 16px / 400 #2C2C2C
- * - Checkbox: 13 x 13 px, radio 2px, #D9D9D9 + texto "Recordarme" 13px / 400 #FFFFFF
- * - Boton principal: 115 x 44 px, radio 9px, #2C2C2C,
- *   sombra `6px 5px 6.5px rgba(0,0,0,0.25), inset 0 4px 4px rgba(0,0,0,0.25)`,
- *   texto "Ingresar" 24px / 400 #FFFFFF
- * - Separador: linea blanca de 371px, 2px
- * - Boton Gmail: 241 x 54 px, radio 40px, #FFFFFF,
- *   sombra interna `inset 4px 4px 3.7px rgba(0, 0, 0, 0.25)`,
- *   texto "Ingresar con gmail" 16px / 600 #000000
- */
 export function LoginForm({ callbackUrl, mensajeExito }: Props) {
+  const router = useRouter();
+  const { update } = useSesion();
   const [estado, formAction, pendiente] = useActionState(
     accionIniciarSesion,
     estadoInicial,
   );
+
+  const cargando = pendiente || Boolean(estado.redirectTo);
+
+  useEffect(() => {
+    if (!estado.redirectTo) return;
+    let cancelado = false;
+
+    void (async () => {
+      // Actualizamos el SessionProvider del cliente antes de navegar para que
+      // el Header y el SideMenu reflejen el usuario logueado de inmediato.
+      await update();
+      if (cancelado) return;
+      router.replace(estado.redirectTo!);
+      router.refresh();
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [estado.redirectTo, router, update]);
 
   return (
     <div className="flex min-h-[440px] w-full max-w-[469px] flex-col items-center rounded-[40px] bg-[linear-gradient(180deg,rgba(255,0,7,0.8)_0%,rgba(153,0,4,1)_100%)] px-6 pt-[37px] pb-[32px] shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)]">
@@ -125,10 +125,10 @@ export function LoginForm({ callbackUrl, mensajeExito }: Props) {
         {/* Boton Ingresar (Frame 10: 115 x 44, #2C2C2C, radio 9px) */}
         <button
           type="submit"
-          disabled={pendiente}
+          disabled={cargando}
           className="mt-[18px] flex h-[44px] w-[115px] items-center justify-center rounded-[9px] bg-[#2C2C2C] text-[24px] font-normal leading-[29px] text-white shadow-[6px_5px_6.5px_rgba(0,0,0,0.25),inset_0_4px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
-          {pendiente ? "..." : "Ingresar"}
+          {cargando ? "..." : "Ingresar"}
         </button>
       </form>
 

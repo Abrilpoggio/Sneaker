@@ -2,30 +2,32 @@
 
 import Link from "next/link";
 
-import { useSesion } from "@/lib/auth-client";
+import { useRutasAuth, useSesion } from "@/lib/auth-client";
 import { RolUsuario } from "@/generated/prisma/enums";
 
 /**
  * Acciones de sesion en el Header principal reconstruidas 1:1 desde Figma:
  *
  * - Visitante (sin sesion activa):
- *   No muestra iconos de Carrito ni Favoritos; renderiza unicamente el boton de
- *   texto "INGRESAR" que redirige a `/login` (acompanado del menu hamburguesa).
+ *   Muestra unicamente el boton de texto "INGRESAR" que redirige a `/login`
+ *   conservando la ventana actual en `callbackUrl`.
  *
  * - Usuario autenticado (`CLIENTE` o `ADMIN`):
  *   Renderiza los iconos de Carrito (`/carrito`), Perfil (`/cuenta` o `/admin`)
  *   y Favoritos (`/cuenta/favoritos`).
  */
 export function SessionButtons() {
-  const { data: sesion } = useSesion();
+  const { data: sesion, status } = useSesion();
+  const { loginHref } = useRutasAuth();
 
-  const autenticado = Boolean(sesion?.user && !sesion.error);
+  const autenticado =
+    status === "authenticated" && Boolean(sesion?.user && !sesion.error);
   const esAdmin = sesion?.user?.rol === RolUsuario.ADMIN;
 
   if (!autenticado) {
     return (
       <Link
-        href="/login"
+        href={loginHref}
         className="text-[18px] font-bold tracking-[0.03em] uppercase text-white transition-opacity hover:opacity-80 sm:text-[20px]"
       >
         INGRESAR
@@ -34,7 +36,7 @@ export function SessionButtons() {
   }
 
   return (
-    <div className="flex items-center gap-6 sm:gap-[41px]">
+    <div className="flex items-center gap-6 sm:gap-[34px]">
       {/* 1. Shopping Cart (42 x 42) */}
       <Link
         href="/carrito"
@@ -47,7 +49,7 @@ export function SessionButtons() {
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="h-[38px] w-[38px]"
+          className="h-[36px] w-[36px]"
         >
           <circle cx="9" cy="21" r="1.5" />
           <circle cx="20" cy="21" r="1.5" />
@@ -68,31 +70,27 @@ export function SessionButtons() {
           sesion?.user?.usuario ??
           (esAdmin ? "Panel Admin" : "Mi Cuenta")
         }
-        className="relative flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
+        className="flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
-          className="h-[38px] w-[38px]"
+          strokeWidth="1.8"
+          className="h-[36px] w-[36px]"
         >
-          <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="9" r="3" />
+          <circle cx="12" cy="12" r="9.5" />
+          <circle cx="12" cy="9.5" r="3" />
           <path strokeLinecap="round" d="M6.5 18.5a6.5 6.5 0 0 1 11 0" />
         </svg>
-        <span
-          aria-hidden
-          className="absolute right-0.5 bottom-0.5 h-3 w-3 rounded-full border-2 border-[#2C2C2C] bg-[#E53935]"
-        />
       </Link>
 
       {/* 3. Heart / Favoritos (42 x 42) */}
       <Link
         href="/cuenta/favoritos"
         aria-label="Mis favoritos"
-        className="hidden h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80 sm:flex"
+        className="flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
@@ -100,7 +98,7 @@ export function SessionButtons() {
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="h-[38px] w-[38px]"
+          className="h-[36px] w-[36px]"
         >
           <path
             strokeLinecap="round"

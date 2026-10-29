@@ -96,7 +96,14 @@ export async function obtenerDatosUsuarioParaToken(
   }
 
   const nombre = usuario.cliente
-    ? `${usuario.cliente.nombre} ${usuario.cliente.apellido}`.trim()
+    ? [
+        usuario.cliente.nombre,
+        usuario.cliente.apellido !== usuario.cliente.nombre
+          ? usuario.cliente.apellido
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
     : usuario.usuario;
 
   return {

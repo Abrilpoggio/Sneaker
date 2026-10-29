@@ -1,26 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { useSesion, signOut } from "@/lib/auth-client";
+import { useRutasAuth, useSesion, signOut } from "@/lib/auth-client";
 import { RolUsuario } from "@/generated/prisma/enums";
 
 /**
- * Panel deslizable reconstruido 1:1 desde el mockup de Figma, incluyendo el
- * modal emergente de aviso para visitantes no autenticados.
+ * Panel deslizable reconstruido 1:1 desde el mockup de Figma:
  *
- * Variantes:
  * - `Side Menu Visitante`:
- *   - Fondo con gradiente vertical oscuro -> rojo (`#2C2828` -> `#592625` -> `#B3211E`)
  *   - Tarjeta superior roja con botones en cursiva "Iniciar sesión" y "Registrarse"
- *   - Tarjeta inferior roja con "Mis Compras / Pedidos", "Mis Favoritos",
- *     "Mis Direcciones" y "Mi Perfil". Al hacer clic en cualquiera de estas 4
- *     opciones sin haber iniciado sesion, se abre el popup de aviso invitando
- *     a ingresar.
- * - `Side Menu Usuario` / `Side Menu Admin`:
- *   - Tarjeta superior con datos del usuario (y badge `ADMIN` si corresponde)
- *   - Navegacion directa a cada ruta + boton "Cerrar sesión".
+ *   - Tarjeta inferior roja con las 4 opciones de usuario (al hacer clic sin
+ *     sesion se abre el modal emergente de aviso).
+ *
+ * - `Side Menu Usuario` (y `Side Menu Admin`):
+ *   - Tarjeta superior roja con icono circular de usuario a la izquierda +
+ *     nombre completo y correo electronico en cursiva blanca a la derecha
+ *   - Tarjeta inferior roja con las opciones en cursiva separadas por lineas
+ *     blancas + opcion final "Cerrar sesión".
  */
 
 interface ItemMenu {
@@ -248,24 +247,38 @@ const ITEMS_ADMIN: ItemMenu[] = [
 
 export function SideMenu() {
   const [abierto, setAbierto] = useState(false);
-  const [modalAuthDestino, setModalAuthDestino] = useState<string | null>(null);
-  const { data: sesion } = useSesion();
+  const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
+  const { data: sesion, status, update } = useSesion();
+  const { loginHref, registroHref } = useRutasAuth();
 
-  const autenticado = Boolean(sesion?.user && !sesion.error);
+  const autenticado =
+    status === "authenticated" && Boolean(sesion?.user && !sesion.error);
   const esAdmin = sesion?.user?.rol === RolUsuario.ADMIN;
   const items = esAdmin ? ITEMS_ADMIN : ITEMS_CUENTA;
 
   const cerrarMenuCompleto = () => {
-    setModalAuthDestino(null);
+    setModalAuthAbierto(false);
     setAbierto(false);
+  };
+
+  const manejarCerrarSesion = async () => {
+    cerrarMenuCompleto();
+    await signOut({ redirect: false });
+    await update();
+    if (pathname.startsWith("/cuenta") || pathname.startsWith("/admin")) {
+      router.replace("/");
+    }
+    router.refresh();
   };
 
   useEffect(() => {
     if (!abierto) return;
     const alPulsar = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (modalAuthDestino) {
-          setModalAuthDestino(null);
+        if (modalAuthAbierto) {
+          setModalAuthAbierto(false);
         } else {
           setAbierto(false);
         }
@@ -277,11 +290,11 @@ export function SideMenu() {
       document.removeEventListener("keydown", alPulsar);
       document.body.style.overflow = "";
     };
-  }, [abierto, modalAuthDestino]);
+  }, [abierto, modalAuthAbierto]);
 
   return (
     <>
-      {/* Hamburguesa 42 x 42 (3 lineas finas blancas como en el Header de Figma) */}
+      {/* Hamburguesa 42 x 42 */}
       <button
         type="button"
         aria-label="Abrir menú"
@@ -304,7 +317,7 @@ export function SideMenu() {
             className="absolute inset-0 bg-black/50 transition-opacity"
           />
 
-          {/* Panel lateral con el gradiente oscuro -> rojo del mockup de Figma */}
+          {/* Panel lateral con gradiente oscuro -> rojo */}
           <aside
             role="dialog"
             aria-label="Menú lateral"
@@ -332,18 +345,18 @@ export function SideMenu() {
             </div>
 
             <div className="mt-[40px] flex w-full flex-col gap-[38px]">
-              {/* Bloque superior rojo */}
+              {/* Bloque superior rojo: Visitante vs Usuario logueado */}
               {!autenticado ? (
                 <div className="grid w-full grid-cols-2 gap-3.5 rounded-[20px] bg-[#EC3834] px-4 py-[18px] shadow-[0_6px_8px_rgba(0,0,0,0.35)]">
                   <Link
-                    href="/login"
+                    href={loginHref}
                     onClick={cerrarMenuCompleto}
                     className="flex h-[46px] items-center justify-center rounded-[12px] bg-[#2C2C2C] px-3 text-[19px] font-medium italic text-white shadow-[0_3px_4px_rgba(0,0,0,0.3)] transition-opacity hover:opacity-90 sm:text-[21px]"
                   >
                     Iniciar sesión
                   </Link>
                   <Link
-                    href="/registro"
+                    href={registroHref}
                     onClick={cerrarMenuCompleto}
                     className="flex h-[46px] items-center justify-center rounded-[12px] bg-[#2C2C2C] px-3 text-[19px] font-medium italic text-white shadow-[0_3px_4px_rgba(0,0,0,0.3)] transition-opacity hover:opacity-90 sm:text-[21px]"
                   >
@@ -351,34 +364,35 @@ export function SideMenu() {
                   </Link>
                 </div>
               ) : (
-                <div className="relative flex min-h-[90px] w-full items-center gap-[17px] rounded-[20px] bg-[#EC3834] px-4 py-3 shadow-[0_6px_8px_rgba(0,0,0,0.35)]">
+                <div className="relative flex min-h-[86px] w-full items-center gap-[18px] rounded-[20px] bg-[#EC3834] px-6 py-4 shadow-[0_6px_8px_rgba(0,0,0,0.35)]">
+                  {/* Profile Circle blanco fino (1:1 con Figma) */}
                   <svg
                     aria-hidden
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
-                    strokeWidth="1.8"
-                    className="h-[56px] w-[56px] shrink-0"
+                    strokeWidth="1.4"
+                    className="h-[52px] w-[52px] shrink-0"
                   >
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="9" r="3" />
+                    <circle cx="12" cy="12" r="9.5" />
+                    <circle cx="12" cy="9.5" r="3" />
                     <path
                       strokeLinecap="round"
-                      d="M6.5 18.5a6.5 6.5 0 0 1 11 0"
+                      d="M6.5 18.8a6.5 6.5 0 0 1 11 0"
                     />
                   </svg>
 
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-2xl font-medium leading-[29px] text-white">
+                    <span className="truncate text-[20px] font-normal italic leading-[26px] text-white sm:text-[21px]">
                       {sesion?.user?.name ?? sesion?.user?.usuario ?? "Usuario"}
                     </span>
-                    <span className="truncate text-lg font-medium leading-[24px] text-white/95 sm:text-xl">
+                    <span className="truncate text-[19px] font-normal italic leading-[25px] text-white sm:text-[21px]">
                       {sesion?.user?.email}
                     </span>
                   </div>
 
                   {esAdmin && (
-                    <span className="absolute right-3 top-2.5 flex h-[31px] w-[68px] items-center justify-center rounded-[16px] bg-[#DBEAFE] text-[15px] font-bold leading-[20px] text-[#1E40AF]">
+                    <span className="absolute right-3 top-2.5 flex h-[28px] w-[64px] items-center justify-center rounded-[16px] bg-[#DBEAFE] text-[13px] font-bold leading-[18px] text-[#1E40AF]">
                       ADMIN
                     </span>
                   )}
@@ -408,7 +422,7 @@ export function SideMenu() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setModalAuthDestino(item.href)}
+                          onClick={() => setModalAuthAbierto(true)}
                           className="flex w-full cursor-pointer items-center gap-4 text-left text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
                         >
                           {item.icono}
@@ -424,37 +438,31 @@ export function SideMenu() {
                       <div className="h-[2.5px] w-full rounded-full bg-white" />
                       <button
                         type="button"
-                        onClick={() => {
-                          cerrarMenuCompleto();
-                          void signOut({ callbackUrl: "/" });
-                        }}
-                        className="flex items-center gap-4 text-left text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
+                        onClick={() => void manejarCerrarSesion()}
+                        className="flex w-full cursor-pointer items-center gap-4 text-left text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
                       >
                         <svg
                           aria-hidden
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="2"
+                          strokeWidth="2.2"
                           className="h-7 w-7 shrink-0"
                         >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                            d="M14 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7"
                           />
-                          <polyline
+                          <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            points="16 17 21 12 16 7"
+                            d="M10 12h8"
                           />
-                          <line
+                          <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            x1="21"
-                            y1="12"
-                            x2="9"
-                            y2="12"
+                            d="m15 9 3 3-3 3"
                           />
                         </svg>
                         <span>Cerrar sesión</span>
@@ -466,14 +474,13 @@ export function SideMenu() {
             </div>
           </aside>
 
-          {/* Ventana emergente de aviso para visitantes no autenticados (Imagen 3 de Figma) */}
-          {modalAuthDestino && (
+          {/* Ventana emergente de aviso para visitantes no autenticados */}
+          {modalAuthAbierto && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-              {/* Backdrop del modal */}
               <button
                 type="button"
                 aria-label="Cerrar aviso"
-                onClick={() => setModalAuthDestino(null)}
+                onClick={() => setModalAuthAbierto(false)}
                 className="absolute inset-0 bg-black/45"
               />
 
@@ -484,11 +491,10 @@ export function SideMenu() {
                 aria-describedby="modal-auth-desc"
                 className="relative z-10 w-full max-w-[495px]"
               >
-                {/* Boton circular blanco con X oscura arriba a la derecha de la tarjeta */}
                 <button
                   type="button"
                   aria-label="Cerrar ventana"
-                  onClick={() => setModalAuthDestino(null)}
+                  onClick={() => setModalAuthAbierto(false)}
                   className="absolute -top-9 right-0 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full bg-white text-[#1E1E1E] shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:-right-2"
                 >
                   <svg
@@ -507,7 +513,6 @@ export function SideMenu() {
                   </svg>
                 </button>
 
-                {/* Tarjeta blanca del modal */}
                 <div className="rounded-[14px] bg-white px-7 py-9 text-center shadow-[0_14px_36px_rgba(0,0,0,0.4)] sm:px-10 sm:py-10">
                   <h2
                     id="modal-auth-titulo"
@@ -525,7 +530,7 @@ export function SideMenu() {
                   </p>
 
                   <Link
-                    href={`/login?callbackUrl=${encodeURIComponent(modalAuthDestino)}`}
+                    href={loginHref}
                     onClick={cerrarMenuCompleto}
                     className="mx-auto mt-7 inline-flex h-[52px] w-[206px] items-center justify-center rounded-[10px] bg-[#2C2C2C] text-[21px] font-normal text-white transition-opacity hover:opacity-90"
                   >

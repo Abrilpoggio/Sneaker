@@ -62,7 +62,14 @@ const proveedorCredenciales = Credentials({
       id: usuario.id,
       email: usuario.correo,
       name: usuario.cliente
-        ? `${usuario.cliente.nombre} ${usuario.cliente.apellido}`
+        ? [
+            usuario.cliente.nombre,
+            usuario.cliente.apellido !== usuario.cliente.nombre
+              ? usuario.cliente.apellido
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
         : usuario.usuario,
       usuario: usuario.usuario,
       rol: usuario.rol,

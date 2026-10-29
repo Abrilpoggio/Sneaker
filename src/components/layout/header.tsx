@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useRutasAuth } from "@/lib/auth-client";
 import { SideMenu } from "./side-menu";
 import { SessionButtons } from "./session-buttons";
 
@@ -36,6 +37,7 @@ const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
 
 export function Header() {
   const pathname = usePathname();
+  const { volverHref } = useRutasAuth();
   const esRutaAuth = Boolean(pathname && RUTAS_AUTH.has(pathname));
 
   if (esRutaAuth) {
@@ -44,7 +46,7 @@ export function Header() {
         <div className="flex h-[136px] w-full items-center justify-between px-6 sm:h-[156px] sm:px-[36px] xl:h-[183px]">
           {/* Frame 81 (226:1101): Flecha izquierda contorneada (40x40) + VOLVER (20px/700 blanco) */}
           <Link
-            href="/"
+            href={volverHref}
             className="flex items-center gap-[20px] text-white transition-opacity hover:opacity-80"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
