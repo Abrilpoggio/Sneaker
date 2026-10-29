@@ -30,12 +30,12 @@ export default async function PaginaAdmin() {
 
   const tarjetas = [
     { etiqueta: "Productos", valor: productos, destino: "/admin/productos" },
-    { etiqueta: "Variantes", valor: variantes, destino: "/admin/stock" },
+    { etiqueta: "Variantes", valor: variantes, destino: "/admin/variantes" },
     { etiqueta: "Usuarios", valor: usuarios, destino: "/admin/usuarios" },
     {
       etiqueta: "Movimientos de stock",
       valor: movimientos,
-      destino: "/admin/stock",
+      destino: "/admin/variantes",
     },
   ];
 
@@ -69,15 +69,17 @@ export default async function PaginaAdmin() {
         </div>
       </section>
 
-      <section aria-labelledby="titulo-sprint" className="rounded-card border border-borde p-4">
-        <h2 id="titulo-sprint" className="text-sm font-semibold">
-          Alcance del Sprint 1
+      <section aria-labelledby="titulo-catalogo" className="rounded-card border border-borde p-4">
+        <h2 id="titulo-catalogo" className="text-sm font-semibold">
+          Catalogo e inventario
         </h2>
         <p className="mt-2 text-sm text-texto-tenue">
-          La gestion de productos, stock, pedidos, kits y promociones se
-          implementa en los sprints 2 a 4. Los enlaces del resumen todavia no
-          tienen destino.
+          Administra productos, variantes y etiquetas de uso. Los cambios de
+          stock quedan registrados con responsable y motivo.
         </p>
+        <Link href="/admin/etiquetas" className="mt-3 inline-block text-sm font-semibold text-[#CF1A1F] underline">
+          Gestionar etiquetas de uso
+        </Link>
       </section>
     </div>
   );
