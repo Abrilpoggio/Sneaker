@@ -342,7 +342,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 | Sprint | Modulo | Estado |
 |---|---|---|
 | 1 | Infra, base de datos, auth y roles | **Hecho** |
-| 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | Pendiente |
+| 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **En curso:** ABM administrativo de productos, variantes y etiquetas implementado localmente; falta revision/integracion del equipo. Busqueda/filtros y perfil/direcciones siguen pendientes. |
 | 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | Pendiente |
 | 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | Pendiente |
 
@@ -355,6 +355,24 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 | Definicion de los permisos del rol SOPORTE (RF-51) | Cliente | Fuera de alcance |
 | Canal de contacto para cancelaciones y reclamos (RF-52 / RN-10) | Cliente | Sprint 2 |
 | Paleta y logo definitivos de Figma (RNF-03) | Equipo de diseno | Antes de la entrega |
+
+### Alcance de Abril en Sprint 2
+
+En `src/app/admin/productos`, `src/app/admin/variantes` y
+`src/app/admin/etiquetas` se implementa el ABM asignado a Abril:
+
+- Alta y edicion de productos con SKU, nombre, descripcion, categoria, marca,
+  proveedor, precios, garantia, imagen y etiquetas.
+- Baja logica/reactivacion con `EstadoProducto`; los productos historicos no
+  se borran fisicamente.
+- Alta, edicion y baja protegida de variantes. El stock inicial y cada ajuste
+  escriben un `MovimientoStock` con responsable y justificacion.
+- CRUD de etiquetas; no se permite borrar una etiqueta aun asignada.
+
+Las imagenes subidas desde el panel se guardan en `public/productos`. Esto es
+adecuado para el entorno local de la cursada; antes de desplegar se debera
+reemplazar por almacenamiento persistente (por ejemplo S3 o Cloudinary), ya
+que el filesystem de un hosting serverless no es almacenamiento permanente.
 
 Los tokens de `src/app/globals.css` ya no son provisionales: salieron del
 mockup de Figma (ver seccion 7). Cambiar la identidad visual es editar
