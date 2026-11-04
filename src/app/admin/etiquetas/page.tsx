@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
   CrearEtiquetaForm,
@@ -10,6 +11,7 @@ import {
 export const metadata: Metadata = { title: "Etiquetas de uso" };
 
 export default async function EtiquetasAdminPage() {
+  await requireAdmin();
   const etiquetas = await prisma.etiquetaUso.findMany({
     include: { _count: { select: { productos: true } } },
     orderBy: { nombre: "asc" },

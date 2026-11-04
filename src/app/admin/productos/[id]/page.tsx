@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ProductoForm } from "@/modules/catalogo/components/producto-form";
 import { EliminarVarianteButton, VarianteForm } from "@/modules/catalogo/components/variante-form";
@@ -14,6 +15,7 @@ export default async function ProductoAdminDetallePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const [producto, categorias, marcas, proveedores, etiquetas] = await Promise.all([
     prisma.producto.findUnique({

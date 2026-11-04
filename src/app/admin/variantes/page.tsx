@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Variantes y stock" };
 
 export default async function VariantesAdminPage() {
+  await requireAdmin();
   const variantes = await prisma.varianteProducto.findMany({
     include: {
       producto: {

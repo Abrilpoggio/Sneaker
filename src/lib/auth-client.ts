@@ -1,10 +1,23 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
+
+function suscribirLocation(callback: () => void) {
+  window.addEventListener("popstate", callback);
+  return () => window.removeEventListener("popstate", callback);
+}
+
+function obtenerSearchCliente() {
+  return window.location.search;
+}
+
+function obtenerSearchServidor() {
+  return "";
+}
 
 /**
  * Cliente de Auth.js para componentes de navegador.
@@ -28,17 +41,18 @@ export function useRutasAuth(): {
   volverHref: string;
 } {
   const pathname = usePathname() ?? "/";
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    setSearch(window.location.search);
-  }, [pathname]);
+  const search = useSyncExternalStore(
+    suscribirLocation,
+    obtenerSearchCliente,
+    obtenerSearchServidor,
+  );
 
   if (RUTAS_AUTH.has(pathname)) {
     const params = new URLSearchParams(search);
     const cb = params.get("callbackUrl");
+    const pathnameCb = cb?.split("?")[0] ?? "";
     const destinoValido =
-      cb && cb.startsWith("/") && !cb.startsWith("//") && !RUTAS_AUTH.has(cb)
+      cb && cb.startsWith("/") && !cb.startsWith("//") && !RUTAS_AUTH.has(pathnameCb)
         ? cb
         : "/";
     const query =

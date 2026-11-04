@@ -34,11 +34,20 @@ const CATEGORIAS = [
 ];
 const AVISOS = ["OFERTAS", "CUPONES"];
 const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
+const ENLACES_CUENTA = [
+  { href: "/cuenta/pedidos", label: "Mis Compras" },
+  { href: "/cuenta/favoritos", label: "Mis Favoritos" },
+  { href: "/cuenta/direcciones", label: "Mis Direcciones" },
+  { href: "/cuenta", label: "Mi Perfil" },
+];
 
 export function Header() {
   const pathname = usePathname();
   const { volverHref } = useRutasAuth();
   const esRutaAuth = Boolean(pathname && RUTAS_AUTH.has(pathname));
+  const esRutaCuenta = Boolean(
+    pathname && (pathname === "/cuenta" || pathname.startsWith("/cuenta/")),
+  );
 
   if (esRutaAuth) {
     return (
@@ -142,38 +151,84 @@ export function Header() {
         </div>
       </div>
 
-      {/* header3 - 58 px, #7C0300 */}
-      <div className="w-full bg-[#7C0300]">
-        <div className="mx-auto flex h-[58px] w-full max-w-[1287px] items-center gap-[47px] px-4 sm:px-8">
-          {AVISOS.map((a) => (
-            <Link
-              key={a}
-              href="/catalogo?ofertas=1"
-              className="text-2xl font-bold text-white transition-opacity hover:opacity-80"
-            >
-              {a}
-            </Link>
-          ))}
+      {esRutaCuenta ? (
+        /* header2 de Cuenta (Figma 226:3571): 56 px, #E53935 */
+        <div className="w-full bg-[#E53935]">
+          <nav
+            aria-label="Secciones de mi cuenta"
+            className="mx-auto flex h-[56px] w-full max-w-[1287px] items-center justify-start gap-6 overflow-x-auto px-4 sm:justify-center sm:gap-[42px] lg:gap-[53px]"
+          >
+            {ENLACES_CUENTA.map((enlace, idx) => {
+              const activo =
+                enlace.href === "/cuenta"
+                  ? pathname === "/cuenta" ||
+                    pathname === "/cuenta/perfil" ||
+                    pathname === "/cuenta/seguridad"
+                  : pathname === enlace.href ||
+                    Boolean(pathname?.startsWith(`${enlace.href}/`));
+              return (
+                <div
+                  key={enlace.href}
+                  className="flex shrink-0 items-center gap-6 sm:gap-[42px] lg:gap-[53px]"
+                >
+                  {idx > 0 && (
+                    <span
+                      aria-hidden
+                      className="h-[23px] w-px bg-white/80"
+                    />
+                  )}
+                  <Link
+                    href={enlace.href}
+                    aria-current={activo ? "page" : undefined}
+                    className={`text-[17px] leading-[24px] text-white transition-opacity hover:opacity-80 sm:text-[20px] ${
+                      activo
+                        ? "font-semibold underline decoration-2 underline-offset-4"
+                        : "font-medium"
+                    }`}
+                  >
+                    {enlace.label}
+                  </Link>
+                </div>
+              );
+            })}
+          </nav>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* header3 - 58 px, #7C0300 */}
+          <div className="w-full bg-[#7C0300]">
+            <div className="mx-auto flex h-[58px] w-full max-w-[1287px] items-center gap-[47px] px-4 sm:px-8">
+              {AVISOS.map((a) => (
+                <Link
+                  key={a}
+                  href="/catalogo?ofertas=1"
+                  className="text-2xl font-bold text-white transition-opacity hover:opacity-80"
+                >
+                  {a}
+                </Link>
+              ))}
+            </div>
+          </div>
 
-      {/* header2 - 52 px, #E53935 */}
-      <div className="w-full bg-[#E53935]">
-        <nav
-          aria-label="Categorías"
-          className="mx-auto flex h-[52px] w-full max-w-[1287px] items-center gap-[47px] overflow-x-auto px-4 sm:px-8"
-        >
-          {CATEGORIAS.map((c) => (
-            <Link
-              key={c}
-              href={`/catalogo?categoria=${encodeURIComponent(c.toLowerCase())}`}
-              className="shrink-0 text-xl font-medium text-white transition-opacity hover:opacity-80"
+          {/* header2 - 52 px, #E53935 */}
+          <div className="w-full bg-[#E53935]">
+            <nav
+              aria-label="Categorías"
+              className="mx-auto flex h-[52px] w-full max-w-[1287px] items-center gap-[47px] overflow-x-auto px-4 sm:px-8"
             >
-              {c}
-            </Link>
-          ))}
-        </nav>
-      </div>
+              {CATEGORIAS.map((c) => (
+                <Link
+                  key={c}
+                  href={`/catalogo?categoria=${encodeURIComponent(c.toLowerCase())}`}
+                  className="shrink-0 text-xl font-medium text-white transition-opacity hover:opacity-80"
+                >
+                  {c}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
     </header>
   );
 }

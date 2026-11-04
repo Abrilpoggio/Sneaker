@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import { cambiarEstadoProductoAdmin } from "@/modules/catalogo/admin-actions";
 import { formatoPrecio } from "@/modules/catalogo/productos";
+import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Gestion de productos" };
@@ -14,6 +15,7 @@ export default async function ProductosAdminPage({
 }: {
   searchParams: Promise<{ q?: string; estado?: string }>;
 }) {
+  await requireAdmin();
   const { q = "", estado = "TODOS" } = await searchParams;
   const filtros: Prisma.ProductoWhereInput[] = [];
   if (estado === "ACTIVO" || estado === "INACTIVO") {

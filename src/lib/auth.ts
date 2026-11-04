@@ -111,7 +111,7 @@ export const authConfig = {
      * Gestiona la emision inicial del JWT (Credenciales y Google OAuth) y
      * la rotacion automatica por Refresh Token cuando expira el Access Token.
      */
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       const ahora = Date.now();
 
       // 1. Inicio de sesion inicial
@@ -157,6 +157,7 @@ export const authConfig = {
 
       // 2. Peticiones subsiguientes dentro de la ventana de validez del Access Token
       if (
+        trigger !== "update" &&
         typeof token.accessTokenExpires === "number" &&
         ahora < token.accessTokenExpires &&
         !token.error

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 
 import { auth } from "@/lib/auth";
@@ -84,4 +85,42 @@ export async function requireVendedor(): Promise<Session> {
  */
 export async function requireCliente(): Promise<Session> {
   return await requireRol([RolUsuario.CLIENTE, RolUsuario.ADMIN]);
+}
+
+/**
+ * Guard de autorizacion RBAC para Route Handlers REST (`src/app/api/**`).
+ * Devuelve `{ sesion }` cuando el usuario esta autenticado y posee uno de los
+ * roles requeridos, o `{ respuestaError }` con `401` / `403` listo para retornar.
+ */
+export async function autorizarApiRol(
+  rolesPermitidos?: readonly RolUsuario[],
+): Promise<
+  | { sesion: Session; respuestaError?: never }
+  | { sesion?: never; respuestaError: NextResponse }
+> {
+  const sesion = await sesionActual();
+
+  if (!sesion?.user) {
+    return {
+      respuestaError: NextResponse.json(
+        { error: "Autenticacion requerida (RN-01)." },
+        { status: 401 },
+      ),
+    };
+  }
+
+  if (
+    rolesPermitidos &&
+    rolesPermitidos.length > 0 &&
+    !rolesPermitidos.includes(sesion.user.rol)
+  ) {
+    return {
+      respuestaError: NextResponse.json(
+        { error: "No posees permisos suficientes para esta operacion (RNF-08)." },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { sesion };
 }

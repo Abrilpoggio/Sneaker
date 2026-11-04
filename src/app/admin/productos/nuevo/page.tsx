@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ProductoForm } from "@/modules/catalogo/components/producto-form";
 
 export const metadata: Metadata = { title: "Agregar producto" };
 
 export default async function NuevoProductoAdminPage() {
+  await requireAdmin();
   const [categorias, marcas, proveedores, etiquetas] = await Promise.all([
     prisma.categoria.findMany({ where: { activa: true }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
     prisma.marca.findMany({ where: { activa: true }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
