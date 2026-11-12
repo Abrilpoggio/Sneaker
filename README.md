@@ -342,7 +342,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 | Sprint | Modulo | Estado |
 |---|---|---|
 | 1 | Infra, base de datos, auth y roles | **Hecho** |
-| 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **En curso:** ABM administrativo de productos, variantes y etiquetas implementado localmente; falta revision/integracion del equipo. Busqueda/filtros y perfil/direcciones siguen pendientes. |
+| 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **Hecho:** ABM administrativo (Abril), busqueda/filtros/stock visible (Camila) y perfil/direcciones (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
 | 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | Pendiente |
 | 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | Pendiente |
 
@@ -373,6 +373,34 @@ Las imagenes subidas desde el panel se guardan en `public/productos`. Esto es
 adecuado para el entorno local de la cursada; antes de desplegar se debera
 reemplazar por almacenamiento persistente (por ejemplo S3 o Cloudinary), ya
 que el filesystem de un hosting serverless no es almacenamiento permanente.
+
+### Alcance de Camila en Sprint 2
+
+En `src/modules/catalogo/catalogo.ts`, `src/app/catalogo` y
+`src/app/producto/[slug]` se implementa la busqueda y el stock visible
+asignado a Camila:
+
+- Catalogo publico alimentado por la base: solo productos `ACTIVO`
+  (los inactivos del ABM no se publican).
+- Buscador por nombre, descripcion, SKU, marca y etiqueta de uso, con
+  filtros combinables por categoria, marca, uso/deporte, talle, color,
+  material y disponibilidad (RF-07). Los filtros viven en la URL
+  (formularios GET), asi que un resultado filtrado es compartible.
+- Ordenamiento por disponibles primero, menor/mayor precio y nombre.
+  Los productos sin stock quedan al final con su indicacion y no se
+  eliminan del catalogo (RF-09).
+- Etiqueta "¡Ultimas N unidades!" en la tarjeta cuando el stock total
+  del producto es 10 o menos, y en el detalle por cada variante
+  (RF-11 / RN-09). Las tarjetas sin stock se atenúan y muestran
+  "Sin stock".
+- Detalle de producto con datos reales: cada variante declara su
+  stock (RF-10); el stock de un kit se deriva del componente con
+  menor disponibilidad (RN-06) y la vista lista sus componentes.
+- RF-08 (asistente guiado de busqueda) es *Should* y queda para mas
+  adelante.
+
+Los productos de muestra del Sprint 1 (Figma) siguen resolviendo en
+el detalle mientras no existan en la base.
 
 Los tokens de `src/app/globals.css` ya no son provisionales: salieron del
 mockup de Figma (ver seccion 7). Cambiar la identidad visual es editar
