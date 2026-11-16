@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ProductoCard } from "@/components/product-card";
+import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
+import { listarCatalogo, type ProductoCatalogo } from "@/modules/catalogo/catalogo";
 import { PRODUCTOS } from "@/modules/catalogo/productos";
 
 /**
@@ -21,102 +23,128 @@ import { PRODUCTOS } from "@/modules/catalogo/productos";
  */
 
 const DESTACADOS = [
-  { src: PRODUCTOS[0].imagen, alt: PRODUCTOS[0].nombre },
-  { src: PRODUCTOS[1].imagen, alt: PRODUCTOS[1].nombre },
-  { src: PRODUCTOS[0].imagen, alt: PRODUCTOS[0].nombre },
+  {
+    titulo: "HOMBRE",
+    href: "/catalogo?categoria=hombres",
+    src: PRODUCTOS[0].imagen,
+    alt: PRODUCTOS[0].nombre,
+  },
+  {
+    titulo: "MUJER",
+    href: "/catalogo?categoria=mujeres",
+    src: PRODUCTOS[1].imagen,
+    alt: PRODUCTOS[1].nombre,
+  },
+  {
+    titulo: "NIÑOS",
+    href: "/catalogo?categoria=niños",
+    src: PRODUCTOS[0].imagen,
+    alt: PRODUCTOS[0].nombre,
+  },
 ];
 
-const SLIDES = [
-  { src: PRODUCTOS[0].imagen, alt: PRODUCTOS[0].nombre },
-  { src: PRODUCTOS[1].imagen, alt: PRODUCTOS[1].nombre },
-];
+export default async function PaginaInicio() {
+  let productosBase: ProductoCatalogo[] = [];
+  try {
+    productosBase = await listarCatalogo({ disponibilidad: "todas", orden: "relevancia" });
+  } catch {
+    productosBase = [];
+  }
 
-export default function PaginaInicio() {
   return (
-    <div className="flex flex-col">
-      {/* Banner 1282 x 410 */}
-      <section aria-label="Banner principal" className="relative h-[410px] w-full bg-[#F5F5F5]">
-        <div className="absolute inset-0">
-          <Image
-            src={SLIDES[0].src}
-            alt={SLIDES[0].alt}
-            fill
-            sizes="(max-width: 640px) 100vw, 1282px"
-            className="object-cover"
-            priority
-          />
+    <div data-full-bleed className="flex w-full flex-col">
+      {/* Banner principal a ancho 100% sin desborde de scrollbar ni margen blanco a la derecha */}
+      <section
+        aria-label="Banner principal"
+        className="relative h-[380px] w-full overflow-hidden bg-gradient-to-r from-[#1F1F1F] via-[#2C2C2C] to-[#7C0300] sm:h-[410px]"
+      >
+        {/* Imagenes decorativas del banner contenidas sin pixelarse ni dejar franja blanca */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex w-full max-w-[760px] items-center justify-end pr-6 opacity-90 sm:pr-16">
+          <div className="relative h-[320px] w-[420px] sm:h-[370px] sm:w-[520px]">
+            <Image
+              src={PRODUCTOS[0].imagen}
+              alt={PRODUCTOS[0].nombre}
+              fill
+              sizes="(max-width: 768px) 80vw, 520px"
+              className="object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)]"
+              priority
+            />
+          </div>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2C2C2C]/70 via-[#2C2C2C]/20 to-transparent" />
-        <div className="relative mx-auto flex h-full w-full max-w-[1287px] items-center px-4">
-          <p className="max-w-[520px] text-4xl font-semibold leading-[39px] text-white">
-            Calzado deportivo y urbano
-          </p>
+
+        <div className="relative mx-auto flex h-full w-full max-w-[1287px] items-center px-6 sm:px-8">
+          <div className="flex max-w-[540px] flex-col gap-3">
+            <p className="text-3xl font-bold leading-tight text-white drop-shadow sm:text-4xl">
+              Calzado deportivo y urbano
+            </p>
+            <p className="text-base font-light text-white/85 sm:text-lg">
+              Encontrá tus próximos pares con reserva inmediata y envíos a todo el país.
+            </p>
+          </div>
+        </div>
+
+        {/* Boton newsletter superpuesto abajo a la derecha como en el mockup de Figma */}
+        <div className="absolute bottom-5 right-6 z-10 sm:right-10">
+          <Link
+            href="/newsletter"
+            className="flex h-[44px] items-center justify-center gap-2.5 rounded-lg bg-white px-5 py-2 shadow-md transition-opacity hover:opacity-90"
+          >
+            <span className="text-sm font-semibold leading-[16px] text-black sm:text-base">
+              ★ Suscríbete a NewsLetter
+            </span>
+          </Link>
         </div>
       </section>
 
-      {/* Boton newsletter 308 x 50, blanco, radio 8, padding 8/12 */}
-      <div className="flex justify-center py-8">
-        <Link
-          href="/catalogo?newsletter=1"
-          className="flex h-[50px] w-[308px] items-center justify-center gap-6 rounded-lg bg-white px-3 py-2 transition-opacity hover:opacity-90"
-        >
-          <span className="text-base font-medium leading-[16px] text-black">
-            Suscríbete a NewsLetter
-          </span>
-        </Link>
-      </div>
-
-      {/* Puntos del carrusel 121 x 50, gap 4 */}
-      <div
-        aria-label="Paginas del banner"
-        className="flex h-[50px] w-[121px] items-center justify-center gap-4 px-6 py-1.5"
-      >
-        {SLIDES.map((_, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className={`h-2 w-2 rounded-full ${i === 0 ? "bg-[#CF1A1F]" : "bg-[#D9D9D9]"}`}
-          />
-        ))}
-      </div>
-
-      {/* Destacados 1282 x 654, fondo #2C2C2C */}
-      <section aria-label="Productos destacados" className="w-full bg-[#2C2C2C]">
-        <div className="mx-auto flex h-[654px] w-full max-w-[1287px] flex-col items-center justify-center gap-[131px] px-4">
-          <div className="flex items-center gap-[131px]">
+      {/* Destacados a ancho completo, fondo #2C2C2C pegado al banner como en el mockup */}
+      <section aria-label="Productos destacados" className="w-full bg-[#2C2C2C] py-12">
+        <div className="mx-auto flex w-full max-w-[1287px] flex-col items-center justify-center gap-10 px-4 sm:px-8">
+          <div className="grid w-full max-w-[1040px] grid-cols-1 justify-items-center gap-8 md:grid-cols-3 lg:gap-12">
             {DESTACADOS.map((s) => (
-              <div
-                key={s.alt}
-                className="relative h-[457px] w-[296px] overflow-hidden rounded-lg bg-[#444444]"
+              <Link
+                key={s.titulo}
+                href={s.href}
+                className="group relative flex h-[380px] w-full max-w-[296px] flex-col items-center justify-between overflow-hidden rounded-lg bg-gradient-to-b from-[#3A3A3A] to-[#1E1E1E] p-6 shadow-lg transition-transform hover:-translate-y-1"
               >
-                <Image
-                  src={s.src}
-                  alt={s.alt}
-                  fill
-                  sizes="(max-width: 640px) 100vw, 296px"
-                  className="object-cover"
-                />
-              </div>
+                <span className="z-10 text-lg font-extrabold tracking-wider text-white">
+                  {s.titulo}
+                </span>
+                <div className="relative my-auto h-[240px] w-full">
+                  <Image
+                    src={s.src}
+                    alt={s.alt}
+                    fill
+                    sizes="280px"
+                    className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <span className="text-sm font-medium text-white/80 underline-offset-4 group-hover:text-white group-hover:underline">
+                  Ver colección
+                </span>
+              </Link>
             ))}
           </div>
           <Link
             href="/catalogo"
-            className="text-2xl font-semibold leading-[29px] text-white transition-opacity hover:opacity-80"
+            className="text-xl font-semibold tracking-wide uppercase underline decoration-white/70 underline-offset-4 text-white transition-opacity hover:opacity-80"
           >
             Ver Catálogo Completo
           </Link>
         </div>
       </section>
 
-      {/* Novedades 136 x 24, #2C2C2C, 20px/700 */}
-      <section aria-label="Novedades" className="mx-auto w-full max-w-[1287px] px-4 py-10">
-        <h2 className="text-xl font-bold leading-[24px] text-[#2C2C2C]">Novedades</h2>
+      {/* Novedades: 4 tarjetas alineadas en una sola fila en escritorio */}
+      <section aria-label="Novedades" className="mx-auto w-full max-w-[1287px] px-4 py-10 sm:px-8">
+        <h2 className="text-xl font-bold leading-[24px] uppercase text-[#2C2C2C]">
+          Novedades
+        </h2>
 
-        {/* Grilla 1220 x 424: tarjetas 290 x 424, gap 20 */}
-        <div className="mt-6 flex flex-wrap gap-5">
-          {PRODUCTOS.map((p) => (
-            <ProductoCard key={p.slug} producto={p} />
-          ))}
+        <div className="mt-6 grid grid-cols-1 justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {productosBase.length > 0
+            ? productosBase.slice(0, 4).map((p) => (
+                <ProductoCatalogoCard key={p.id} producto={p} />
+              ))
+            : PRODUCTOS.slice(0, 4).map((p) => <ProductoCard key={p.slug} producto={p} />)}
         </div>
       </section>
     </div>

@@ -8,6 +8,11 @@ import {
   calcularEstadoStock,
   type ProductoDetalle,
 } from "@/modules/catalogo/catalogo";
+import { accionAgregarAlCarrito } from "@/modules/carrito/actions";
+import {
+  SelectorVarianteCarrito,
+  type OpcionVarianteCarrito,
+} from "@/modules/carrito/components/controles";
 import { buscarProducto, formatoPrecio } from "@/modules/catalogo/productos";
 
 /**
@@ -33,12 +38,6 @@ import { buscarProducto, formatoPrecio } from "@/modules/catalogo/productos";
  * (RF-10) con el aviso de ultimas unidades (RF-11 / RN-09). Los
  * productos de muestra del Sprint 1 siguen resolviendo igual.
  */
-
-interface VarianteVista {
-  id: string;
-  titulo: string;
-  stock: number;
-}
 
 export default async function DetalleProductoPage({
   params,
@@ -186,20 +185,20 @@ export default async function DetalleProductoPage({
             </div>
           </div>
 
-          {/* Botones 20px / 500 / lh16 */}
-          <div className="mt-2 flex flex-wrap gap-4">
-            <button
-              type="button"
-              className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:opacity-90"
-            >
-              Agregar al carrito
-            </button>
-            <button
-              type="button"
-              className="rounded-md bg-[#2C2C2C] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:opacity-90"
-            >
-              Comprar ahora
-            </button>
+          {/* Botones de respaldo cuando el producto aun no fue sembrado en la BD */}
+          <div className="mt-2 flex flex-col gap-3">
+            <div className="flex flex-wrap gap-4">
+              <Link
+                href="/catalogo"
+                className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:opacity-90"
+              >
+                Ver variantes en el catálogo
+              </Link>
+            </div>
+            <p className="text-sm text-[#7C0300]">
+              Esta es una vista previa de diseño. Ejecutá <code>npm run db:seed</code> para cargar
+              las variantes de este producto en la base de datos y agregarlo al carrito.
+            </p>
           </div>
 
           <p className="text-sm text-[#9E9E9E]">Stock: {stock} unidades</p>
@@ -274,8 +273,11 @@ function renderDesdeBase({
   sku,
 }: ProductoDetalle) {
   const { sinStock, ultimasUnidades } = calcularEstadoStock(stockTotal);
-  const variantesVista: VarianteVista[] = variantes.map((v) => ({
+  const variantesVista: OpcionVarianteCarrito[] = variantes.map((v) => ({
     id: v.id,
+    talle: v.talle,
+    color: v.color,
+    material: v.material,
     titulo: [v.talle, v.color, v.material].filter(Boolean).join(" · ") || "Variante única",
     stock: v.stock,
   }));
@@ -347,42 +349,26 @@ function renderDesdeBase({
           </p>
           <p className="text-sm text-[#9E9E9E]">SKU: {sku}</p>
 
-          {/* RF-10: stock explicito por variante. RN-06: si es kit,
-              se listan los componentes que determinan su stock. */}
-          <p className="text-lg font-light leading-[27px] text-black">
-            {variantesVista.length > 0 ? "Variantes:" : "Componentes del kit:"}
-          </p>
-          <ul className="flex flex-col gap-2">
-            {variantesVista.length > 0
-              ? variantesVista.map((v) => {
-                  const estadoVariante = calcularEstadoStock(v.stock);
-                  return (
-                    <li
-                      key={v.id}
-                      className={`flex flex-wrap items-center justify-between gap-2 rounded-md border px-4 py-3 ${
-                        estadoVariante.sinStock
-                          ? "border-[#D9D9D9] bg-[#F5F5F5] text-[#9E9E9E]"
-                          : "border-[#D9D9D9] bg-white text-[#2C2C2C]"
-                      }`}
-                    >
-                      <span className="text-lg font-light leading-[27px]">{v.titulo}</span>
-                      {estadoVariante.sinStock ? (
-                        <span className="rounded bg-[#9E9E9E] px-2 py-1 text-base font-medium leading-[16px] text-white">
-                          Sin stock
-                        </span>
-                      ) : estadoVariante.ultimasUnidades ? (
-                        <span className="rounded bg-[#CF1A1F] px-2 py-1 text-base font-medium leading-[16px] text-white">
-                          ¡Últimas {v.stock} unidades! — {v.stock} u.
-                        </span>
-                      ) : (
-                        <span className="text-base font-medium leading-[16px] text-[#4E4E4E]">
-                          {v.stock} u. disponibles
-                        </span>
-                      )}
-                    </li>
-                  );
-                })
-              : componentesKit.map((componente) => {
+          <div className="flex items-baseline gap-4">
+            <span className="text-[40px] font-medium leading-[49px] text-black">
+              {formatoPrecio(precio)}
+            </span>
+          </div>
+
+          {/* RF-10 / RF-21: selector interactivo de talle/color con un único botón "Agregar al carrito".
+              RN-06: si es kit, se listan los componentes que determinan su stock. */}
+          {variantesVista.length > 0 ? (
+            <SelectorVarianteCarrito
+              accion={accionAgregarAlCarrito}
+              variantes={variantesVista}
+            />
+          ) : (
+            <div className="flex flex-col gap-2">
+              <p className="text-lg font-light leading-[27px] text-black">
+                Componentes del kit:
+              </p>
+              <ul className="flex flex-col gap-2">
+                {componentesKit.map((componente) => {
                   const estadoVariante = calcularEstadoStock(componente.stockComponente);
                   return (
                     <li
@@ -408,17 +394,9 @@ function renderDesdeBase({
                     </li>
                   );
                 })}
-          </ul>
-
-          <div className="flex items-baseline gap-4">
-            <span className="text-[40px] font-medium leading-[49px] text-black">
-              {formatoPrecio(precio)}
-            </span>
-          </div>
-
-          <p className="text-lg font-light leading-[27px] text-black">
-            Cantidad: 1 u.
-          </p>
+              </ul>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <p className="text-xl font-light leading-[24px] text-black">Medios de pago:</p>
@@ -447,26 +425,15 @@ function renderDesdeBase({
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-4">
-            <button
-              type="button"
-              disabled={sinStock}
-              className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Agregar al carrito
-            </button>
-            <button
-              type="button"
-              disabled={sinStock}
-              className="rounded-md bg-[#2C2C2C] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Comprar ahora
-            </button>
-          </div>
+          <p className="text-base text-[#6B6B6B]">
+            {variantesVista.length > 0
+              ? "Elegí una variante y agregala al carrito. Al comprar, tus productos quedan reservados durante 1 a 2 minutos."
+              : "El carrito de kits se habilita con el checkout final."}
+          </p>
 
           <p className="text-sm text-[#9E9E9E]">
             {esKit
-              ? `Stock del kit: ${stockTotal} unidades (RN-06: lo limita el componente con menor stock)`
+              ? `Stock del kit: ${stockTotal} unidades (limitado por el componente con menor stock)`
               : `Stock total: ${stockTotal} unidades en ${variantesVista.length} ${
                   variantesVista.length === 1 ? "variante" : "variantes"
                 }`}

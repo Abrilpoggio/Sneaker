@@ -44,9 +44,12 @@ enum EstadoProveedor {
 /// RF-30: los cuatro estados exigidos por el cliente.
 /// CANCELADO y RECHAZADO se agregan para poder representar los
 /// flujos de RF-25 (pago rechazado) y RN-07/RNF-07 (restauracion
-/// de stock ante cancelacion).
+/// de stock ante cancelacion). PENDIENTE representa el pedido creado
+/// mientras el pago con Mercado Pago (RF-24) esta en curso: el stock
+/// se descuenta recien al aprobarse el pago.
 enum EstadoPedido {
   CONFIRMADO
+  PENDIENTE
   PREPARANDO
   EN_CAMINO
   RECIBIDO

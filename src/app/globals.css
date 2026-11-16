@@ -111,6 +111,12 @@
   --text-6xl: var(--text-6xl);
 }
 
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   background: var(--color-fondo);
   color: var(--color-texto);

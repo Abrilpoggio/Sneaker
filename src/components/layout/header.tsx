@@ -32,7 +32,6 @@ const CATEGORIAS = [
   "Medias",
   "Accesorios",
 ];
-const AVISOS = ["OFERTAS", "CUPONES"];
 const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
 const ENLACES_CUENTA = [
   { href: "/cuenta/pedidos", label: "Mis Compras" },
@@ -92,30 +91,30 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full">
-      {/* header1 - 155 px, #2C2C2C */}
+      {/* header1 - 155 px, #2C2C2C, extremos pegados a los bordes y buscador central mas largo */}
       <div className="w-full bg-[#2C2C2C]">
-        <div className="mx-auto flex h-[155px] w-full max-w-[1287px] items-center gap-6 px-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-[23px]">
+        <div className="flex h-[135px] w-full items-center justify-between gap-6 px-5 sm:h-[155px] sm:px-10 lg:px-12">
+          <Link href="/" className="flex shrink-0 items-center gap-[20px] sm:gap-[23px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/logo-circle.png"
               alt="Logo Sneaker"
-              className="h-[80px] w-[80px] shrink-0 rounded-full object-contain sm:h-[104px] sm:w-[104px]"
+              className="h-[76px] w-[76px] shrink-0 rounded-full object-contain sm:h-[100px] sm:w-[100px]"
             />
 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/sneaker-wordmark.svg"
               alt="SNEAKER"
-              className="h-[24px] w-auto sm:h-[29px] sm:w-[206px]"
+              className="h-[22px] w-auto sm:h-[29px] sm:w-[206px]"
             />
           </Link>
 
-          {/* Buscador: 325 x 41, fondo #F5F5F5, texto en cursiva a la izquierda y lupa oscura a la derecha */}
+          {/* Buscador central alargado como en el mockup */}
           <form
             action="/catalogo"
             role="search"
-            className="mx-auto hidden h-[41px] w-[325px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-4 lg:flex"
+            className="mx-auto hidden h-[42px] w-full max-w-[420px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-4 lg:flex xl:max-w-[500px]"
           >
             <input
               type="search"
@@ -144,7 +143,7 @@ export function Header() {
           </form>
 
           {/* Visitante: "INGRESAR" + Hamburguesa | Autenticado: Carrito + Perfil + Favoritos + Hamburguesa */}
-          <div className="ml-auto flex items-center gap-6 sm:gap-[34px]">
+          <div className="ml-auto flex shrink-0 items-center gap-6 sm:gap-[34px]">
             <SessionButtons />
             <SideMenu />
           </div>
@@ -156,7 +155,7 @@ export function Header() {
         <div className="w-full bg-[#E53935]">
           <nav
             aria-label="Secciones de mi cuenta"
-            className="mx-auto flex h-[56px] w-full max-w-[1287px] items-center justify-start gap-6 overflow-x-auto px-4 sm:justify-center sm:gap-[42px] lg:gap-[53px]"
+            className="mx-auto flex h-[56px] w-full max-w-[1440px] items-center justify-start gap-6 overflow-x-auto px-4 sm:justify-center sm:gap-[42px] lg:gap-[53px]"
           >
             {ENLACES_CUENTA.map((enlace, idx) => {
               const activo =
@@ -195,35 +194,80 @@ export function Header() {
         </div>
       ) : (
         <>
-          {/* header3 - 58 px, #7C0300 */}
+          {/* header3 - 54 px, #7C0300 con iconos de OFERTAS y CUPONES como en el mockup */}
           <div className="w-full bg-[#7C0300]">
-            <div className="mx-auto flex h-[58px] w-full max-w-[1287px] items-center gap-[47px] px-4 sm:px-8">
-              {AVISOS.map((a) => (
-                <Link
-                  key={a}
-                  href="/catalogo?ofertas=1"
-                  className="text-2xl font-bold text-white transition-opacity hover:opacity-80"
+            <div className="mx-auto flex h-[52px] w-full max-w-[1440px] items-center justify-center gap-8 px-4 sm:gap-12 sm:px-8">
+              <Link
+                href="/catalogo?ofertas=1"
+                className="flex items-center gap-2 text-lg font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-xl"
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-5 w-5 shrink-0"
                 >
-                  {a}
-                </Link>
-              ))}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 2 14.4 4.8 18 4.2l.6 3.6L21.4 10l-1.8 3.2.6 3.6-3.6-.6L14.2 19l-2.2-2.8L9.8 19l-2.4-2.8-3.6.6.6-3.6L2.6 10l2.8-2.2L6 4.2l3.6.6L12 2Z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 15 6-6" />
+                  <circle cx="9.5" cy="9.5" r="1" fill="currentColor" />
+                  <circle cx="14.5" cy="14.5" r="1" fill="currentColor" />
+                </svg>
+                <span>OFERTAS</span>
+              </Link>
+
+              <span aria-hidden className="h-5 w-px bg-white/70" />
+
+              <Link
+                href="/catalogo?ofertas=1"
+                className="flex items-center gap-2 text-lg font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-xl"
+              >
+                <span>CUPONES</span>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-5 w-5 shrink-0"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2Z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 5v2m0 10v2m0-8v2" />
+                </svg>
+              </Link>
             </div>
           </div>
 
-          {/* header2 - 52 px, #E53935 */}
+          {/* header2 - 50 px, #E53935 distribuido a lo ancho */}
           <div className="w-full bg-[#E53935]">
             <nav
               aria-label="Categorías"
-              className="mx-auto flex h-[52px] w-full max-w-[1287px] items-center gap-[47px] overflow-x-auto px-4 sm:px-8"
+              className="mx-auto flex h-[50px] w-full max-w-[1560px] items-center justify-between gap-2 overflow-x-auto px-4 sm:px-8"
             >
-              {CATEGORIAS.map((c) => (
-                <Link
-                  key={c}
-                  href={`/catalogo?categoria=${encodeURIComponent(c.toLowerCase())}`}
-                  className="shrink-0 text-xl font-medium text-white transition-opacity hover:opacity-80"
-                >
-                  {c}
-                </Link>
+              {CATEGORIAS.map((c, idx) => (
+                <div key={c} className="flex flex-1 items-center justify-center">
+                  {idx > 0 && (
+                    <span
+                      aria-hidden
+                      className="mr-auto hidden h-5 w-px bg-white/70 md:block"
+                    />
+                  )}
+                  <Link
+                    href={`/catalogo?categoria=${encodeURIComponent(c.toLowerCase())}`}
+                    className="mx-auto shrink-0 px-2 text-lg font-medium italic text-white transition-opacity hover:opacity-80 sm:text-xl"
+                  >
+                    {c}
+                  </Link>
+                </div>
               ))}
             </nav>
           </div>

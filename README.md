@@ -332,7 +332,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 |---|---|---|
 | Proyecto en Google Cloud + credenciales OAuth | Sprint 1 (RF-13) | <https://console.cloud.google.com/> |
 | Credenciales de prueba de Mercado Pago | Sprint 3 (RF-24) | <https://www.mercadopago.com.ar/developers> |
-| Cuenta del proveedor de correo transaccional | Sprint 3 (RF-28, RF-44) | Resend / SendGrid / Brevo |
+| Cuenta del proveedor de correo transaccional | Sprint 3 (RF-28, RF-44) | Resend / SendGrid / Brevo. Opcional en dev: sin clave el correo se simula en consola |
 | Dominio y hosting | Sprint 4 | — |
 
 ---
@@ -343,7 +343,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 |---|---|---|
 | 1 | Infra, base de datos, auth y roles | **Hecho** |
 | 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **Hecho:** ABM administrativo (Abril), busqueda/filtros/stock visible (Camila) y perfil/direcciones (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
-| 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | Pendiente |
+| 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | **Hecho:** carrito con reserva temporal de stock (Abril), checkout con Mercado Pago + motor de cupones/promociones (Camila) y correos + newsletter + tarifas de envio (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
 | 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | Pendiente |
 
 ### Lo que falta decidir (bloquea al que siga)
@@ -351,7 +351,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 | Decision | Quien la toma | Afecta |
 |---|---|---|
 | Politica exacta de "un unico cupon por usuario" (RN-08 dice "pendiente de precision") | Cliente (Nicolas / Agustin) | Sprint 3 |
-| Tarifas de envio por ciudad y por provincia (RF-45) | Cliente | Sprint 3 |
+| Tarifas de envio por ciudad y por provincia (RF-45): el codigo usa valores de ejemplo documentados en la seccion 10 | Cliente | Sprint 3 |
 | Definicion de los permisos del rol SOPORTE (RF-51) | Cliente | Fuera de alcance |
 | Canal de contacto para cancelaciones y reclamos (RF-52 / RN-10) | Cliente | Sprint 2 |
 | Paleta y logo definitivos de Figma (RNF-03) | Equipo de diseno | Antes de la entrega |
@@ -402,9 +402,137 @@ asignado a Camila:
 Los productos de muestra del Sprint 1 (Figma) siguen resolviendo en
 el detalle mientras no existan en la base.
 
+### Alcance de Abril en Sprint 3
+
+En `src/modules/carrito`, `src/app/carrito` y `src/app/carrito/checkout`
+se implementa el carrito con reserva temporal asignado a Abril:
+
+- Una linea por variante (`ItemCarrito`): alta, cambio de cantidad y
+  baja, con el precio congelado al agregar (decision 8 del modelado).
+- El tope de cantidad es el stock fisico menos lo reservado por otros
+  carritos con reserva vigente (RF-21 / RN-05). Los mensajes indican
+  cuantas unidades quedan.
+- `iniciarReserva` ejecuta una transaccion que re-valida todas las
+  lineas y fija `Carrito.reservaExpiracion` en 90 segundos (RN-04:
+  ventana de 1 a 2 minutos). Si otro cliente reservo antes, la compra
+  no avanza y se informa por linea.
+- Mientras la reserva esta vigente el carrito queda congelado; se
+  libera con "Cancelar reserva" o automaticamente al vencer. La
+  liberacion no requiere procesos externos: el stock reservado se
+  calcula sumando items de carritos con `reservaExpiracion` en el
+  futuro, asi que al vencer deja de computar solo.
+- `/carrito/checkout` muestra el resumen con temporizador visible.
+  Los pasos siguientes (direccion RF-18, cupones RF-22, pago RF-24)
+  se integran sobre esta reserva en las tareas de Camila y Tadeo.
+- Sin sesion no hay carrito: `requireCliente()` redirige a login
+  (RN-01) y las server actions re-verifican contra la base.
+
+Limitacion documentada: los kits no se pueden agregar al carrito
+todavia, porque `ItemCarrito` apunta a una variante y el kit no tiene
+variantes propias; se resuelve junto con el ABM de kits (Sprint 4).
+
 Los tokens de `src/app/globals.css` ya no son provisionales: salieron del
 mockup de Figma (ver seccion 7). Cambiar la identidad visual es editar
 ese archivo, no 40 componentes.
+
+### Alcance de Camila en Sprint 3
+
+En `src/modules/checkout`, `src/app/carrito/checkout`,
+`src/app/pedido/[numeroOrden]` y `src/app/api/pagos/webhook` se
+implementa el checkout asignado a Camila (RF-22 a RF-27, RN-05, RN-08):
+
+- El pedido se crea en dos fases: `crearPedidoPendiente` congela
+  montos, items, cupon, promociones y envio sin tocar stock; la
+  aprobacion del pago (`aprobarPedidoPendiente`) descuenta stock con
+  guardas atomicas (`updateMany` + `stockActual >= cantidad`, RN-05),
+  escribe `MovimientoStock` tipo VENTA con responsable y pedido
+  (RF-26/RN-07) y vacia el carrito. El estado PENDIENTE se agrego al
+  enum `EstadoPedido` para representar el pago en curso.
+- Mercado Pago (RF-24): con `MERCADO_PAGO_ACCESS_TOKEN` definido el
+  checkout crea una preferencia de Checkout Pro
+  (`external_reference` = numero de orden) y redirige al comprador.
+  El webhook consulta `GET /v1/payments/{id}` antes de confirmar: nunca
+  se confia en el cuerpo del POST. La aprobacion es idempotente
+  (webhooks repetidos no re-descuentan stock).
+- Sin credenciales, el pago simulado recorre exactamente el mismo
+  camino de dos fases: la demo no depende de MP y activar el modo real
+  es solo definir la variable. El webhook no llega a localhost en dev
+  (hace falta tunel); el modo simulado es el camino probado.
+- Promociones (RF-41 en lectura): una promocion vigente con lista de
+  productos vacia es global; si varias cubren el mismo producto se
+  aplica la de mayor porcentaje (no acumulativas, RN-08) y el descuento
+  queda auditado por pedido en `PedidoPromocion`.
+- Cupon (RF-22): se valida contra la base (activo y dentro de su
+  ventana) y se aplica sobre el subtotal con promociones ya
+  descontadas. RN-08: un cupon por compra; el alcance exacto de "por
+  usuario" sigue pendiente de precision del cliente, hoy se limita a
+  uno por pedido conservado en la cookie `sneaker_cupon`.
+- Pago rechazado (RF-25): el pedido queda RECHAZADO, el stock no se
+  descuenta y el carrito se conserva para reintentar; si el stock se
+  agoto durante el cobro, el rechazo tambien queda registrado.
+- Confirmacion (RF-27): `/pedido/SNK-...` muestra items, promociones,
+  cupon, envio y estado, visible solo para su comprador (control de
+  propiedad en el servicio).
+
+Alcance pendiente de este modulo: la direccion se toma de la
+predeterminada (seleccion durante la compra = RF-18, tarea separada) y
+el ABM administrativo de cupones/promociones (RF-41/42) no tiene
+responsable asignado; el seed ya trae el cupon `BIENVENIDO10` y la
+promocion "Temporada Basketball" para probar. El costo de envio (RF-45)
+ya esta integrado al checkout por Tadeo (ver seccion siguiente).
+
+Verificacion: `npx tsx scripts/prueba-checkout.ts` corre un arnes de
+verificaciones contra la base (cupones, combinacion promo+cupon,
+pedido pendiente, aprobacion idempotente, rechazo RF-25, carrera por
+stock RN-05, mas las pruebas de Tadeo en la seccion siguiente). Cada
+corrida descuenta stock real y crea pedidos de prueba: correr el seed
+para restaurar.
+
+### Alcance de Tadeo en Sprint 3
+
+En `src/modules/envios`, `src/modules/emails`, `src/modules/newsletter`,
+`src/app/newsletter` y `src/app/admin/newsletter` se implementan los
+requerimientos asignados a Tadeo:
+
+- **Tarifas de envio (RF-45)** en `src/modules/envios/tarifas.ts`: la
+  tarifa es una sola por pedido. Si el destino es la ciudad de la
+  tienda (Concepcion del Uruguay) se cobra la tarifa base; si es otra
+  ciudad se cobra la tarifa de su provincia, con un valor por defecto
+  para provincias sin tarifa cargada. La comparacion normaliza
+  mayusculas y acentos. La tarifa se calcula desde la direccion
+  congelada en el snapshot del pedido, se muestra en el desglose del
+  checkout y `montoTotal` = productos con descuentos + envio (asi el
+  pago cobra el total con envio incluido).
+- **Correo de confirmacion (RF-28)** en `src/modules/emails`: despues
+  de que el pago queda aprobado (simulado o webhook de MP) se envia un
+  correo con el detalle de los productos, los descuentos aplicados
+  (promociones, cupon y envio) y el agradecimiento. Un fallo del
+  proveedor NUNCA rompe la compra ya confirmada: se loguea y el pedido
+  sigue confirmado. Sin `RESEND_API_KEY` el modo simulado escribe el
+  correo completo en la consola del servidor, asi el flujo queda
+  demostrable sin cuenta de Resend.
+- **Suscripcion al newsletter (RF-43)**: pagina publica `/newsletter`
+  que pide unicamente el correo, sin cuenta. El alta es idempotente
+  (nuevo / ya suscripto / reactivado tras una baja) y si el visitante
+  ya tiene sesion la fila se enlaza a su usuario, tal como pide el
+  comentario del modelo `SuscripcionNewsletter` en el schema.
+- **Envio de novedades (RF-44)**: pagina de administracion
+  `/admin/newsletter` (exclusiva de ADMIN, RNF-08) con un formulario
+  asunto/mensaje que envia la campana a todas las suscripciones
+  activas. Un fallo individual no corta la campana. El boton
+  "Suscribete a NewsLetter" del home apunta a `/newsletter`.
+
+Los valores de las tarifas (base 5000, por provincia) son **de
+ejemplo**: el cliente todavia no definio los definitivos (decision
+pendiente en la seccion 10). Estan concentrados en un archivo, asi que
+cambiarlos es editar constantes. Los correos salen por Resend con
+`RESEND_API_KEY`; el remitente se configura en `CORREO_REMITENTE`
+(ver `.env.example`).
+
+Verificacion: el mismo arnes agrega verificaciones de Tadeo: tarifas
+por ciudad/provincia/normalizacion (RF-45), contenido del correo de
+confirmacion y modo simulado (RF-28), ciclo de vida de la suscripcion
+y campana de novedades (RF-43/44).
 
 ---
 

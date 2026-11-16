@@ -80,7 +80,7 @@ async function main() {
   // ---------- Usuarios ----------
   const hash = await bcrypt.hash("sneaker1234", 12);
 
-  await prisma.usuario.upsert({
+  const adminUsuario = await prisma.usuario.upsert({
     where: { correo: "admin@sneaker.test" },
     update: { rol: RolUsuario.ADMIN, passwordHash: hash },
     create: {
@@ -90,6 +90,33 @@ async function main() {
       rol: RolUsuario.ADMIN,
     },
   });
+
+  await prisma.cliente.upsert({
+    where: { usuarioId: adminUsuario.id },
+    update: { nombre: "Admin", apellido: "Sneaker" },
+    create: {
+      usuarioId: adminUsuario.id,
+      nombre: "Admin",
+      apellido: "Sneaker",
+      telefono: "3442400000",
+    },
+  });
+
+  const direccionesAdmin = await prisma.direccion.count({ where: { clienteId: adminUsuario.id } });
+  if (direccionesAdmin === 0) {
+    await prisma.direccion.create({
+      data: {
+        clienteId: adminUsuario.id,
+        destinatario: "Admin Sneaker",
+        calle: "9 de Julio",
+        numero: "500",
+        ciudad: "Concepcion del Uruguay",
+        provincia: "Entre Rios",
+        codigoPostal: "3260",
+        predeterminada: true,
+      },
+    });
+  }
 
   const clientesSemilla = [
     {
@@ -160,12 +187,48 @@ async function main() {
   // ---------- Productos ----------
   const productos = [
     {
+      sku: "nike-air-force-1-07",
+      nombre: "Nike Air Force 1 '07",
+      descripcion:
+        "Las Nike Air Force 1 '07 son las zapatillas de básquet que lo empezaron todo. Con la misma amortiguación Nike Air que las hizo famosas, combinan cuero premium con una silueta que aguantó décadas sin perder vigencia.",
+      precioVenta: 39999,
+      costoCompra: 24000,
+      garantia: "6 meses",
+      imagen: "/productos/nike-air-force-1-07-1.png",
+      categoria: "deportivas",
+      marca: "nike",
+      etiquetas: ["basquet", "running", "caminata"],
+      variantes: [
+        { talle: "40", color: "Blanco", material: "Cuero", stockActual: 6 },
+        { talle: "41", color: "Blanco", material: "Cuero", stockActual: 4 },
+        { talle: "42", color: "Negro", material: "Cuero", stockActual: 2 },
+      ],
+    },
+    {
+      sku: "adidas-forum-low-cl",
+      nombre: "Adidas Forum Low CL",
+      descripcion:
+        "Las Adidas Forum Low CL recuperan la silueta de 1984 con un perfil bajo y acabado limpio. La capellada de cuero y las tres tiras en contraste las hacen fáciles de combinar.",
+      precioVenta: 54999,
+      costoCompra: 32000,
+      garantia: "6 meses",
+      imagen: "/productos/adidas-forum-low-cl-1.png",
+      categoria: "deportivas",
+      marca: "adidas",
+      etiquetas: ["caminata", "urban"],
+      variantes: [
+        { talle: "39", color: "Blanco", material: "Cuero", stockActual: 4 },
+        { talle: "41", color: "Blanco", material: "Cuero", stockActual: 4 },
+      ],
+    },
+    {
       sku: "SNK-DEP-001",
       nombre: "Zapatilla Basket Running X",
       descripcion: "Zapatilla liviana para running daily. Capellada de mesh y suela de goma.",
       precioVenta: 89999,
       costoCompra: 52000,
       garantia: "6 meses",
+      imagen: "/productos/nike-air-force-1-07-1.png",
       categoria: "deportivas",
       marca: "kross",
       etiquetas: ["running", "caminata"],
@@ -184,6 +247,7 @@ async function main() {
       precioVenta: 74999,
       costoCompra: 41000,
       garantia: "6 meses",
+      imagen: "/productos/adidas-forum-low-cl-1.png",
       categoria: "urbanas",
       marca: "kross",
       etiquetas: ["urban"],
@@ -200,6 +264,7 @@ async function main() {
       precioVenta: 12999,
       costoCompra: 4500,
       garantia: null,
+      imagen: null,
       categoria: "accesorios",
       marca: "kross",
       etiquetas: ["running", "training"],
@@ -214,7 +279,7 @@ async function main() {
   for (const p of productos) {
     const producto = await prisma.producto.upsert({
       where: { sku: p.sku },
-      update: {},
+      update: { imagen: p.imagen },
       create: {
         sku: p.sku,
         nombre: p.nombre,
@@ -222,6 +287,7 @@ async function main() {
         precioVenta: p.precioVenta,
         costoCompra: p.costoCompra,
         garantia: p.garantia,
+        imagen: p.imagen,
         estado: EstadoProducto.ACTIVO,
         categoriaId: catPorSlug.get(p.categoria)!.id,
         marcaId: marcaPorSlug.get(p.marca)!.id,
@@ -253,7 +319,30 @@ async function main() {
       });
 
       if (existente) {
-        variantes.push({ id: existente.id, stock: existente.stockActual });
+        // Restauracion: si el stock difiere del valor de la semilla
+        // (por corridas del arnes de pruebas o ajustes manuales) se
+        // vuelve al valor semilla, con su movimiento de rastro (RN-07).
+        if (existente.stockActual !== v.stockActual) {
+          await prisma.varianteProducto.update({
+            where: { id: existente.id },
+            data: { stockActual: v.stockActual },
+          });
+          if (v.stockActual > 0) {
+            await prisma.movimientoStock.create({
+              data: {
+                tipo: TipoMovimiento.INGRESO,
+                cantidad: v.stockActual,
+                justificacion: "Restauracion de semilla",
+                varianteProductoId: existente.id,
+                responsableId: (
+                  await prisma.usuario.findUniqueOrThrow({ where: { correo: "admin@sneaker.test" } })
+                ).id,
+                stockResultante: v.stockActual,
+              },
+            });
+          }
+        }
+        variantes.push({ id: existente.id, stock: v.stockActual });
         continue;
       }
 

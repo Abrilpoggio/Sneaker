@@ -13,6 +13,7 @@ export const enlacesNav = [
   { href: "/catalogo?categoria=urbanas", etiqueta: "Urbanas" },
   { href: "/catalogo?categoria=accesorios", etiqueta: "Accesorios" },
   { href: "/catalogo?categoria=kits", etiqueta: "Kits" },
+  { href: "/carrito", etiqueta: "Carrito" },
 ] as const;
 
 export function Logo() {

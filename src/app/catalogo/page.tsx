@@ -65,233 +65,290 @@ export default async function CatalogoPage({
   const hayFiltros = Object.values(parametros).some((valor) => Boolean(valor?.trim()));
 
   return (
-    <div className="flex flex-col">
-      {/* BANNER 1283 x 289, radio 2 */}
+    <div data-full-bleed className="flex w-full flex-col">
+      {/* BANNER a ancho completo pegado al header y texto centrado como en el mockup de Figma */}
       <section
         aria-label="Banner del catalogo"
-        className="relative h-[289px] w-full overflow-hidden rounded-sm bg-[#2C2C2C]"
+        className="relative h-[250px] w-full overflow-hidden bg-[#2C2C2C] sm:h-[289px]"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#CF1A1F] via-[#7C0300] to-[#2C2C2C]" />
-        <div className="relative mx-auto flex h-full w-full max-w-[1287px] flex-col justify-center gap-8 px-4">
-          <h1 className="text-[56px] font-extrabold leading-[68px] text-white">
+        <div className="relative mx-auto flex h-full w-full max-w-[1287px] flex-col items-center justify-center gap-3 px-6 text-center sm:px-10">
+          <h1 className="text-3xl font-extrabold tracking-wide text-white drop-shadow sm:text-[52px] sm:leading-[62px]">
             CATÁLOGO COMPLETO
           </h1>
-          <p className="text-2xl font-medium leading-[29px] text-white">
+          <p className="text-lg font-medium italic tracking-wide text-white/95 sm:text-2xl">
             TODOS NUESTROS PRODUCTOS
           </p>
         </div>
         <Link
           href="/"
-          className="absolute left-4 top-4 text-xl font-bold leading-[24px] text-white transition-opacity hover:opacity-80"
+          className="absolute left-6 top-5 flex items-center gap-2.5 text-lg font-bold uppercase text-white transition-opacity hover:opacity-80 sm:left-10"
         >
-          Volver
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/figma/arrow-volver.svg"
+            alt=""
+            aria-hidden
+            className="h-7 w-7 shrink-0"
+          />
+          <span>VOLVER</span>
         </Link>
       </section>
 
-      <section aria-label="Filtros" className="mx-auto w-full max-w-[1287px] px-4 pt-8">
-        {/* RF-07: busqueda y filtros combinados en un solo formulario */}
-        <form
-          method="get"
-          className="grid gap-3 rounded-md border border-[#D9D9D9] bg-[#FAFAFA] p-4 md:grid-cols-3 lg:grid-cols-4"
+      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-8 px-4 py-8 lg:flex-row lg:items-start lg:px-6">
+        {/* Barra lateral izquierda de filtros (RF-07 / RF-09) pegada al margen izquierdo */}
+        <aside
+          aria-label="Filtros"
+          className="w-full shrink-0 rounded-lg border border-[#D9D9D9] bg-[#FAFAFA] p-4 lg:sticky lg:top-6 lg:w-[250px]"
         >
-          <label className="sr-only" htmlFor="filtro-q">
-            Buscar productos
-          </label>
-          <input
-            id="filtro-q"
-            name="q"
-            defaultValue={filtros.q ?? ""}
-            placeholder="Buscar por nombre, marca, SKU o deporte"
-            className={`${inputClass} md:col-span-3 lg:col-span-2`}
-          />
+          <div className="mb-4 flex items-center justify-between border-b border-[#E5E5E5] pb-3">
+            <h2 className="text-lg font-bold text-[#2C2C2C]">Filtros</h2>
+            {hayFiltros && (
+              <Link
+                href="/catalogo"
+                className="text-sm font-medium text-[#CF1A1F] underline transition-opacity hover:opacity-75"
+              >
+                Limpiar todo
+              </Link>
+            )}
+          </div>
 
-          <label className="sr-only" htmlFor="filtro-categoria">
-            Categoría
-          </label>
-          <select
-            id="filtro-categoria"
-            name="categoria"
-            defaultValue={filtros.categoria ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todas las categorías</option>
-            {facetas.categorias.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
+          <form method="get" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-q"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Buscar
+              </label>
+              <input
+                id="filtro-q"
+                name="q"
+                defaultValue={filtros.q ?? ""}
+                placeholder="Nombre, marca, SKU..."
+                className={inputClass}
+              />
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-marca">
-            Marca
-          </label>
-          <select
-            id="filtro-marca"
-            name="marca"
-            defaultValue={filtros.marca ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todas las marcas</option>
-            {facetas.marcas.map((m) => (
-              <option key={m.slug} value={m.slug}>
-                {m.nombre}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-orden"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Ordenar por
+              </label>
+              <select
+                id="filtro-orden"
+                name="orden"
+                defaultValue={filtros.orden}
+                className={inputClass}
+              >
+                {ORDENES.map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-etiqueta">
-            Uso / deporte
-          </label>
-          <select
-            id="filtro-etiqueta"
-            name="etiqueta"
-            defaultValue={filtros.etiqueta ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todos los usos</option>
-            {facetas.etiquetas.map((e) => (
-              <option key={e.slug} value={e.slug}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-categoria"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Categoría
+              </label>
+              <select
+                id="filtro-categoria"
+                name="categoria"
+                defaultValue={filtros.categoria ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todas las categorías</option>
+                {facetas.categorias.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-talle">
-            Talle
-          </label>
-          <select
-            id="filtro-talle"
-            name="talle"
-            defaultValue={filtros.talle ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todos los talles</option>
-            {facetas.talles.map((t) => (
-              <option key={t} value={t}>
-                Talle {t}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-marca"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Marca
+              </label>
+              <select
+                id="filtro-marca"
+                name="marca"
+                defaultValue={filtros.marca ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todas las marcas</option>
+                {facetas.marcas.map((m) => (
+                  <option key={m.slug} value={m.slug}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-color">
-            Color
-          </label>
-          <select
-            id="filtro-color"
-            name="color"
-            defaultValue={filtros.color ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todos los colores</option>
-            {facetas.colores.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-etiqueta"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Uso / Deporte
+              </label>
+              <select
+                id="filtro-etiqueta"
+                name="etiqueta"
+                defaultValue={filtros.etiqueta ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todos los usos</option>
+                {facetas.etiquetas.map((e) => (
+                  <option key={e.slug} value={e.slug}>
+                    {e.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-material">
-            Material
-          </label>
-          <select
-            id="filtro-material"
-            name="material"
-            defaultValue={filtros.material ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todos los materiales</option>
-            {facetas.materiales.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-talle"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Talle
+              </label>
+              <select
+                id="filtro-talle"
+                name="talle"
+                defaultValue={filtros.talle ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todos los talles</option>
+                {facetas.talles.map((t) => (
+                  <option key={t} value={t}>
+                    Talle {t}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-disponibilidad">
-            Disponibilidad
-          </label>
-          <select
-            id="filtro-disponibilidad"
-            name="disponibilidad"
-            defaultValue={filtros.disponibilidad}
-            className={inputClass}
-          >
-            <option value="todas">Con o sin stock</option>
-            <option value="con-stock">Solo con stock</option>
-            <option value="sin-stock">Solo sin stock</option>
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-color"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Color
+              </label>
+              <select
+                id="filtro-color"
+                name="color"
+                defaultValue={filtros.color ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todos los colores</option>
+                {facetas.colores.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <label className="sr-only" htmlFor="filtro-orden">
-            Ordenar por
-          </label>
-          <select
-            id="filtro-orden"
-            name="orden"
-            defaultValue={filtros.orden}
-            className={inputClass}
-          >
-            {ORDENES.map((o) => (
-              <option key={o.valor} value={o.valor}>
-                {o.etiqueta}
-              </option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-material"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Material
+              </label>
+              <select
+                id="filtro-material"
+                name="material"
+                defaultValue={filtros.material ?? ""}
+                className={inputClass}
+              >
+                <option value="">Todos los materiales</option>
+                {facetas.materiales.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="filtro-disponibilidad"
+                className="text-sm font-semibold text-[#2C2C2C]"
+              >
+                Disponibilidad
+              </label>
+              <select
+                id="filtro-disponibilidad"
+                name="disponibilidad"
+                defaultValue={filtros.disponibilidad}
+                className={inputClass}
+              >
+                <option value="todas">Con o sin stock</option>
+                <option value="con-stock">Solo con stock</option>
+                <option value="sin-stock">Solo sin stock</option>
+              </select>
+            </div>
+
             <button
               type="submit"
-              className="rounded bg-[#CF1A1F] px-5 py-2 text-base font-semibold text-white transition-colors hover:bg-[#7C0300]"
+              className="mt-2 w-full rounded bg-[#CF1A1F] px-5 py-2.5 text-base font-semibold text-white transition-colors hover:bg-[#7C0300]"
             >
-              Filtrar
+              Aplicar filtros
             </button>
-            {hayFiltros && (
-              <Link
-                href="/catalogo"
-                className="text-base text-[#4E4E4E] underline transition-opacity hover:opacity-70"
-              >
-                Limpiar
-              </Link>
-            )}
+          </form>
+        </aside>
+
+        {/* Columna principal de productos */}
+        <section aria-label="Productos" className="flex flex-1 flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E5E5] pb-4">
+            <h2 className="text-lg font-semibold leading-[22px] text-black">
+              {productos.length === 1
+                ? "1 producto encontrado"
+                : `${productos.length} productos encontrados`}
+            </h2>
           </div>
-        </form>
-      </section>
 
-      {/* "Todos nuestros Productos" 18px / 600 / lh22, #000000 */}
-      <section aria-label="Productos" className="mx-auto w-full max-w-[1287px] px-4 py-10">
-        <h2 className="text-lg font-semibold leading-[22px] text-black">
-          {productos.length === 1
-            ? "1 producto encontrado"
-            : `${productos.length} productos encontrados`}
-        </h2>
-
-        {/* Filas de tarjetas 1220 x 424, gap 20 */}
-        <div className="mt-6 flex flex-wrap gap-5">
-          {productos.map((producto) => (
-            <ProductoCatalogoCard key={producto.id} producto={producto} />
-          ))}
-        </div>
-
-        {productos.length === 0 && (
-          <div className="py-16 text-center">
-            <p className="text-xl text-[#9E9E9E]">
-              No encontramos productos que coincidan con tu búsqueda.
-            </p>
-            {hayFiltros && (
-              <Link
-                href="/catalogo"
-                className="mt-4 inline-block text-base font-semibold text-[#CF1A1F] underline"
-              >
-                Ver todo el catálogo
-              </Link>
-            )}
+          <div className="mt-6 flex flex-wrap gap-5">
+            {productos.map((producto) => (
+              <ProductoCatalogoCard key={producto.id} producto={producto} />
+            ))}
           </div>
-        )}
 
-        <p className="mt-8 text-sm text-[#9E9E9E]">
-          Los productos sin stock se muestran al final con su indicación, pero no se
-          eliminan del catálogo.
-        </p>
-      </section>
+          {productos.length === 0 && (
+            <div className="py-16 text-center">
+              <p className="text-xl text-[#9E9E9E]">
+                No encontramos productos que coincidan con tu búsqueda.
+              </p>
+              {hayFiltros && (
+                <Link
+                  href="/catalogo"
+                  className="mt-4 inline-block text-base font-semibold text-[#CF1A1F] underline"
+                >
+                  Ver todo el catálogo
+                </Link>
+              )}
+            </div>
+          )}
+
+          <p className="mt-8 text-sm text-[#9E9E9E]">
+            Los productos sin stock se muestran al final con su indicación, pero no se
+            eliminan del catálogo.
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

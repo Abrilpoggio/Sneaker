@@ -26,27 +26,31 @@ export function ProductoCard({ producto }: { producto: Producto }) {
   return (
     <Link
       href={`/producto/${slug}`}
-      className="group flex w-[290px] shrink-0 flex-col"
+      className="group flex w-full max-w-[280px] shrink-0 flex-col"
     >
-      {/* Imagen 290 x 289, fondo #2C2C2C */}
-      <div className="relative h-[289px] w-[290px] overflow-hidden bg-[#2C2C2C]">
+      {/* Imagen 280 x 260, fondo #2C2C2C */}
+      <div className="relative h-[260px] w-full overflow-hidden rounded-t-[11px] bg-[#2C2C2C]">
         <Image
           src={imagen}
           alt={`${nombre} ${marca}`}
           fill
-          sizes="(max-width: 640px) 100vw, 290px"
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, 280px"
+          className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
-      {/* Panel 290 x 151, #444444, radio 11, solapa 16 px */}
-      <div className="z-10 -mt-4 h-[151px] w-[290px] rounded-[11px] bg-[#444444] px-4 py-3">
-        <div className="flex h-[114px] flex-col gap-6">
-          <h3 className="text-xl font-bold leading-[24px] text-white">{nombre}</h3>
-          <p className="text-xl font-medium leading-[24px] text-white">{marca}</p>
-          <p className="text-xl font-light leading-[24px] text-white">{categoria}</p>
+      {/* Panel inferior #444444, radio 11, solapa 12 px, texto proporcionado al rectangulo */}
+      <div className="z-10 -mt-3 flex min-h-[148px] w-full flex-1 flex-col justify-between rounded-[11px] bg-[#444444] px-4 py-3.5 shadow-sm">
+        <div className="flex flex-col gap-1">
+          <h3 className="line-clamp-2 text-[15px] font-bold leading-[20px] text-white">
+            {nombre}
+          </h3>
+          <p className="text-[13px] font-medium leading-[18px] text-white/90">{marca}</p>
+          <p className="text-[12px] font-light leading-[16px] text-white/75">{categoria}</p>
+        </div>
+        <div className="mt-2.5 border-t border-white/10 pt-2">
           <p
-            className={`text-xl font-medium leading-[24px] ${
+            className={`text-[17px] font-bold leading-[22px] ${
               descuento ? "text-[#CF1A1F]" : "text-white"
             }`}
           >

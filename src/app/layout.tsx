@@ -27,6 +27,14 @@ export const metadata: Metadata = {
     "Tienda online de calzado deportivo y urbano, accesorios y kits. Envios a todo el pais.",
   // RNF-04: el alcance comercial es Argentina.
   keywords: ["sneakers", "zapatillas", "calzado deportivo", "Argentina"],
+  icons: {
+    icon: [
+      { url: "/figma/logo-circle.png?v=2", type: "image/png" },
+      { url: "/favicon.ico?v=2", type: "image/x-icon" },
+    ],
+    shortcut: "/figma/logo-circle.png?v=2",
+    apple: "/figma/logo-circle.png?v=2",
+  },
 };
 
 export default function RootLayout({
@@ -37,9 +45,9 @@ export default function RootLayout({
   return (
     <html
       lang="es-AR"
-      className={`${montserrat.variable} h-full antialiased`}
+      className={`${montserrat.variable} h-full overflow-x-clip antialiased`}
     >
-      <body className="min-h-full flex flex-col overflow-x-clip">
+      <body className="min-h-full w-full flex flex-col overflow-x-clip">
         <Providers>
           {/* Skip link: RNF-02, permite saltar al contenido con teclado. */}
           <a
@@ -53,7 +61,7 @@ export default function RootLayout({
 
           <main
             id="contenido"
-            className="mx-auto w-full max-w-6xl flex-1 px-4 py-8"
+            className="mx-auto w-full max-w-[1287px] flex-1 px-4 py-8 has-[[data-full-bleed]]:max-w-none has-[[data-full-bleed]]:px-0 has-[[data-full-bleed]]:py-0"
           >
             {children}
           </main>
