@@ -9,6 +9,12 @@ import {
   actualizarCantidadSchema,
   quitarItemSchema,
 } from "../schemas";
+import {
+  disponibilidadKit,
+  disponibilidadPorVariante,
+  reservasVigentesPorVariante,
+  consumoCarritoPorVariante,
+} from "./disponibilidad";
 
 /**
  * Servicio del Modulo Carrito (Sprint 3 - Abril Poggio).
@@ -43,7 +49,10 @@ type Transaccion = Prisma.TransactionClient;
 
 export interface ItemCarritoVista {
   id: string;
-  varianteProductoId: string;
+  /** RN-06: una linea es de variante o de kit. */
+  varianteProductoId: string | null;
+  kitProductoId: string | null;
+  esKit: boolean;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
@@ -68,26 +77,9 @@ export interface EstadoCarrito {
 
 /**
  * RN-04: los carritos con reserva vigente retienen el stock de sus
- * items. `excluirCarritoId` permite mirar solo la reserva ajena.
+ * items. La lectura de reservas (incluidos los componentes de kits)
+ * se concentra en services/disponibilidad.ts.
  */
-function reservadoPorOtros(
-  tx: Transaccion,
-  varianteId: string,
-  excluirCarritoId?: string,
-): Promise<number> {
-  return tx.itemCarrito
-    .aggregate({
-      _sum: { cantidad: true },
-      where: {
-        varianteProductoId: varianteId,
-        carrito: {
-          reservaExpiracion: { gt: new Date() },
-          ...(excluirCarritoId ? { id: { not: excluirCarritoId } } : {}),
-        },
-      },
-    })
-    .then((r) => r._sum.cantidad ?? 0);
-}
 
 export async function obtenerCarrito(usuarioId: string) {
   return prisma.carrito.upsert({
@@ -145,29 +137,14 @@ export async function resolverComprador(
   return idResuelto;
 }
 
-/** RF-21: agrega una variante al carrito con tope de stock real. */
+/** RF-21 / RF-38: agrega una variante o un kit con tope de stock real. */
 export async function agregarItemCarrito(
   usuarioId: string,
   entrada: unknown,
 ): Promise<void> {
-  const { varianteId, cantidad } = agregarAlCarritoSchema.parse(entrada);
+  const { varianteId, kitProductoId, cantidad } = agregarAlCarritoSchema.parse(entrada);
 
   await prisma.$transaction(async (tx) => {
-    const variante = await tx.varianteProducto.findUnique({
-      where: { id: varianteId },
-      select: {
-        id: true,
-        stockActual: true,
-        producto: { select: { estado: true, precioVenta: true } },
-      },
-    });
-    if (!variante) {
-      throw new ErrorNegocioCarrito("VARIANTE_INEXISTENTE", "La variante seleccionada no existe.");
-    }
-    if (variante.producto.estado !== "ACTIVO") {
-      throw new ErrorNegocioCarrito("PRODUCTO_INACTIVO", "El producto no está disponible.");
-    }
-
     const carrito = await tx.carrito.upsert({
       where: { clienteId: usuarioId },
       update: {},
@@ -175,50 +152,133 @@ export async function agregarItemCarrito(
     });
     await asegurarCarritoLibre(tx, carrito.id);
 
-    const item = await tx.itemCarrito.findUnique({
-      where: { carritoId_varianteProductoId: {
-        carritoId: carrito.id,
-        varianteProductoId: varianteId,
-      } },
-      select: { id: true, cantidad: true },
-    });
+    if (varianteId) {
+      const variante = await tx.varianteProducto.findUnique({
+        where: { id: varianteId },
+        select: {
+          id: true,
+          producto: { select: { estado: true, precioVenta: true } },
+        },
+      });
+      if (!variante) {
+        throw new ErrorNegocioCarrito("VARIANTE_INEXISTENTE", "La variante seleccionada no existe.");
+      }
+      if (variante.producto.estado !== "ACTIVO") {
+        throw new ErrorNegocioCarrito("PRODUCTO_INACTIVO", "El producto no está disponible.");
+      }
 
-    // RN-05: el tope es el stock fisico menos lo reservado por OTROS
-    // carritos. Mis propias lineas no se cuentan contra stock ajeno,
-    // pero la cantidad acumulada (en carrito + nueva) no puede superar el disponible.
-    const reservado = await reservadoPorOtros(tx, varianteId, carrito.id);
-    const disponible = variante.stockActual - reservado;
+      const disponibles = await disponibilidadPorVariante(tx, [varianteId], carrito.id);
+      const disponible = disponibles.get(varianteId) ?? 0;
+      if (disponible <= 0) {
+        throw new ErrorNegocioCarrito(
+          "SIN_STOCK",
+          "No quedan unidades disponibles de esa variante (reservadas por otro cliente u agotadas).",
+        );
+      }
+      if (cantidad > disponible) {
+        throw new ErrorNegocioCarrito(
+          "STOCK_INSUFICIENTE",
+          `Solo podés agregar ${disponible} unidad(es) más de esta variante. Ajustá la cantidad para continuar.`,
+        );
+      }
+
+      const item = await tx.itemCarrito.findUnique({
+        where: {
+          carritoId_varianteProductoId: {
+            carritoId: carrito.id,
+            varianteProductoId: varianteId,
+          },
+        },
+        select: { id: true, cantidad: true },
+      });
+
+      if (item) {
+        // Decision 8: se conserva el precio congelado de la linea.
+        await tx.itemCarrito.update({
+          where: { id: item.id },
+          data: { cantidad: item.cantidad + cantidad },
+        });
+      } else {
+        await tx.itemCarrito.create({
+          data: {
+            carritoId: carrito.id,
+            varianteProductoId: varianteId,
+            cantidad,
+            precioUnitario: variante.producto.precioVenta,
+          },
+        });
+      }
+      return;
+    }
+
+    if (!kitProductoId) {
+      throw new ErrorNegocioCarrito("REFERENCIA_INVALIDA", "Falta la variante o el kit a agregar.");
+    }
+
+    const kit = await tx.kit.findUnique({
+      where: { productoId: kitProductoId },
+      select: {
+        productoId: true,
+        producto: { select: { estado: true, precioVenta: true, nombre: true } },
+        componentes: {
+          select: { varianteId: true, cantidad: true, variante: { select: { stockActual: true } } },
+        },
+      },
+    });
+    if (!kit) {
+      throw new ErrorNegocioCarrito("KIT_INEXISTENTE", "El kit seleccionado no existe.");
+    }
+    if (kit.producto.estado !== "ACTIVO") {
+      throw new ErrorNegocioCarrito("PRODUCTO_INACTIVO", "El kit no está disponible.");
+    }
+    if (kit.componentes.length < 2) {
+      throw new ErrorNegocioCarrito(
+        "KIT_INCOMPLETO",
+        "El kit todavía no tiene dos componentes configurados.",
+      );
+    }
+
+    const disponibles = await disponibilidadPorVariante(
+      tx,
+      kit.componentes.map((componente) => componente.varianteId),
+      carrito.id,
+    );
+    const disponible = disponibilidadKit(kit.componentes, disponibles);
     if (disponible <= 0) {
       throw new ErrorNegocioCarrito(
         "SIN_STOCK",
-        "No quedan unidades disponibles de esa variante (reservadas por otro cliente u agotadas).",
+        `No quedan unidades disponibles de "${kit.producto.nombre}": alguno de sus componentes está agotado o reservado.`,
       );
     }
-    const cantidadActual = item?.cantidad ?? 0;
-    const cantidadTotal = cantidadActual + cantidad;
-    if (cantidadTotal > disponible) {
-      const restantesParaAgregar = Math.max(disponible - cantidadActual, 0);
+    if (cantidad > disponible) {
       throw new ErrorNegocioCarrito(
         "STOCK_INSUFICIENTE",
-        cantidadActual > 0
-          ? `Ya tenés ${cantidadActual} unidad(es) en el carrito y el stock disponible es ${disponible} (podés sumar hasta ${restantesParaAgregar} más).`
-          : `Solo quedan ${disponible} unidad(es) de esta variante. Ajustá la cantidad para continuar.`,
+        `Solo podés agregar ${disponible} unidad(es) más de "${kit.producto.nombre}" (RN-06: manda el componente con menor stock).`,
       );
     }
 
+    const item = await tx.itemCarrito.findUnique({
+      where: {
+        carritoId_kitProductoId: {
+          carritoId: carrito.id,
+          kitProductoId,
+        },
+      },
+      select: { id: true, cantidad: true },
+    });
+
     if (item) {
-      // Decision 8: se conserva el precio congelado de la linea.
       await tx.itemCarrito.update({
         where: { id: item.id },
-        data: { cantidad: cantidadTotal },
+        data: { cantidad: item.cantidad + cantidad },
       });
     } else {
       await tx.itemCarrito.create({
         data: {
           carritoId: carrito.id,
-          varianteProductoId: varianteId,
+          kitProductoId,
           cantidad,
-          precioUnitario: variante.producto.precioVenta,
+          precioUnitario: kit.producto.precioVenta,
         },
       });
     }
@@ -235,7 +295,18 @@ export async function actualizarCantidadItem(
   await prisma.$transaction(async (tx) => {
     const item = await tx.itemCarrito.findFirst({
       where: { id: itemId, carrito: { clienteId: usuarioId } },
-      select: { id: true, carritoId: true, varianteProductoId: true },
+      select: {
+        id: true,
+        carritoId: true,
+        varianteProductoId: true,
+        kitProductoId: true,
+        kit: {
+          select: {
+            producto: { select: { nombre: true } },
+            componentes: { select: { varianteId: true, cantidad: true } },
+          },
+        },
+      },
     });
     if (!item) {
       throw new ErrorNegocioCarrito("ITEM_INEXISTENTE", "Ese item no pertenece a tu carrito.");
@@ -248,16 +319,27 @@ export async function actualizarCantidadItem(
 
     await asegurarCarritoLibre(tx, item.carritoId);
 
-    const variante = await tx.varianteProducto.findUnique({
-      where: { id: item.varianteProductoId },
-      select: { stockActual: true },
-    });
-    const reservado = await reservadoPorOtros(tx, item.varianteProductoId, item.carritoId);
-    const disponible = (variante?.stockActual ?? 0) - reservado;
+    const esKit = Boolean(item.kit);
+    const variantes = esKit
+      ? (item.kit?.componentes ?? []).map((componente) => componente.varianteId)
+      : item.varianteProductoId
+        ? [item.varianteProductoId]
+        : [];
+    const disponibles = await disponibilidadPorVariante(
+      tx,
+      variantes,
+      item.carritoId,
+      item.id,
+    );
+    const disponible = esKit
+      ? disponibilidadKit(item.kit?.componentes ?? [], disponibles)
+      : disponibles.get(item.varianteProductoId ?? "") ?? 0;
     if (cantidad > disponible) {
       throw new ErrorNegocioCarrito(
         "STOCK_INSUFICIENTE",
-        `Solo quedan ${Math.max(disponible, 0)} unidad(es) de esta variante. Probá con una cantidad menor.`,
+        esKit
+          ? `"${item.kit?.producto.nombre ?? "El kit"}" admite hasta ${Math.max(disponible, 0)} unidad(es) con el stock de sus componentes (RN-06).`
+          : `Solo quedan ${Math.max(disponible, 0)} unidad(es) de esta variante. Probá con una cantidad menor.`,
       );
     }
 
@@ -299,7 +381,18 @@ export async function iniciarReservaCarrito(
       select: {
         id: true,
         reservaExpiracion: true,
-        items: { select: { id: true, cantidad: true, varianteProductoId: true } },
+        items: {
+          select: {
+            id: true,
+            cantidad: true,
+            varianteProductoId: true,
+            kit: {
+              select: {
+                componentes: { select: { varianteId: true, cantidad: true } },
+              },
+            },
+          },
+        },
       },
     });
     if (!carrito) {
@@ -314,17 +407,43 @@ export async function iniciarReservaCarrito(
       return carrito.reservaExpiracion;
     }
 
+    // RN-05 / RN-06: se valida el consumo agregado del carrito. Un kit
+    // puede compartir componentes con otra linea, asi que comparar
+    // linea por linea no alcanza.
+    const consumo = new Map<string, number>();
     for (const item of carrito.items) {
-      const reservado = await reservadoPorOtros(tx, item.varianteProductoId, carrito.id);
-      const variante = await tx.varianteProducto.findUnique({
-        where: { id: item.varianteProductoId },
-        select: { stockActual: true, producto: { select: { nombre: true } } },
-      });
-      const disponible = (variante?.stockActual ?? 0) - reservado;
-      if (item.cantidad > disponible) {
+      if (item.varianteProductoId) {
+        consumo.set(
+          item.varianteProductoId,
+          (consumo.get(item.varianteProductoId) ?? 0) + item.cantidad,
+        );
+      }
+      for (const componente of item.kit?.componentes ?? []) {
+        consumo.set(
+          componente.varianteId,
+          (consumo.get(componente.varianteId) ?? 0) + item.cantidad * componente.cantidad,
+        );
+      }
+    }
+
+    const variantesIds = [...consumo.keys()];
+    const [variantes, reservas] = await Promise.all([
+      tx.varianteProducto.findMany({
+        where: { id: { in: variantesIds } },
+        select: { id: true, stockActual: true, producto: { select: { nombre: true } } },
+      }),
+      reservasVigentesPorVariante(tx, variantesIds, carrito.id),
+    ]);
+    const stockPorVariante = new Map(variantes.map((v) => [v.id, v.stockActual]));
+    const nombrePorVariante = new Map(variantes.map((v) => [v.id, v.producto.nombre]));
+
+    for (const [varianteId, unidades] of consumo) {
+      const disponible =
+        (stockPorVariante.get(varianteId) ?? 0) - (reservas.get(varianteId) ?? 0);
+      if (unidades > disponible) {
         throw new ErrorNegocioCarrito(
           "STOCK_INSUFICIENTE",
-          `No hay stock suficiente de "${variante?.producto.nombre ?? "una variante"}": quedan ${Math.max(disponible, 0)} unidad(es) y tu carrito tiene ${item.cantidad}. Ajustá la cantidad para continuar.`,
+          `No hay stock suficiente del componente "${nombrePorVariante.get(varianteId) ?? "una variante"}": quedan ${Math.max(disponible, 0)} unidad(es) y tu carrito necesita ${unidades}. Ajustá las cantidades para continuar.`,
         );
       }
     }
@@ -377,6 +496,28 @@ export async function obtenerEstadoCarrito(
               },
             },
           },
+          kitProductoId: true,
+          kit: {
+            select: {
+              producto: {
+                select: { nombre: true, sku: true, imagen: true, estado: true },
+              },
+              componentes: {
+                select: {
+                  cantidad: true,
+                  varianteId: true,
+                  variante: {
+                    select: {
+                      talle: true,
+                      color: true,
+                      material: true,
+                      producto: { select: { nombre: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -393,47 +534,103 @@ export async function obtenerEstadoCarrito(
     };
   }
 
-  const reservasAjenas = new Map<string, number>();
-  const variantesIds = carrito.items.map((i) => i.varianteProductoId);
-  if (variantesIds.length > 0) {
-    const grupos = await prisma.itemCarrito.groupBy({
-      by: ["varianteProductoId"],
-      _sum: { cantidad: true },
-      where: {
-        varianteProductoId: { in: variantesIds },
-        carrito: { reservaExpiracion: { gt: new Date() }, id: { not: carrito.id } },
-      },
-    });
-    for (const grupo of grupos) {
-      reservasAjenas.set(grupo.varianteProductoId, grupo._sum.cantidad ?? 0);
-    }
-  }
+  const variantesIds = [
+    ...new Set(
+      carrito.items.flatMap((item) => [
+        ...(item.varianteProductoId ? [item.varianteProductoId] : []),
+        ...(item.kit?.componentes.map((componente) => componente.varianteId) ?? []),
+      ]),
+    ),
+  ];
+
+  const [variantes, reservasAjenas, consumoPropio] = await Promise.all([
+    prisma.varianteProducto.findMany({
+      where: { id: { in: variantesIds } },
+      select: { id: true, stockActual: true },
+    }),
+    reservasVigentesPorVariante(prisma, variantesIds, carrito.id),
+    consumoCarritoPorVariante(prisma, carrito.id, variantesIds),
+  ]);
+  const stockPorVariante = new Map(variantes.map((v) => [v.id, v.stockActual]));
 
   const items: ItemCarritoVista[] = carrito.items.map((item) => {
     const precio = Number(item.precioUnitario);
-    const stock = item.varianteProducto.stockActual;
-    const reservado = reservasAjenas.get(item.varianteProductoId) ?? 0;
-    const disponible = Math.max(stock - reservado, 0);
-    const titulo = [
-      item.varianteProducto.talle,
-      item.varianteProducto.color,
-      item.varianteProducto.material,
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    const esKit = Boolean(item.kit);
+
+    // Unidades que esta misma linea consume de cada variante. Se
+    // descuentan del consumo propio para mostrar el maximo que la
+    // linea puede llegar a tener sin cambiar las demas lineas.
+    const consumoLinea = new Map<string, number>();
+    if (item.varianteProductoId) {
+      consumoLinea.set(item.varianteProductoId, item.cantidad);
+    }
+    for (const componente of item.kit?.componentes ?? []) {
+      consumoLinea.set(
+        componente.varianteId,
+        item.cantidad * componente.cantidad,
+      );
+    }
+
+    const disponiblePorVariante = new Map<string, number>();
+    for (const [varianteId, consumo] of consumoLinea) {
+      const disponible =
+        (stockPorVariante.get(varianteId) ?? 0) -
+        (reservasAjenas.get(varianteId) ?? 0) -
+        ((consumoPropio.get(varianteId) ?? 0) - consumo);
+      disponiblePorVariante.set(varianteId, Math.max(disponible, 0));
+    }
+
+    const stockDisponible = esKit
+      ? disponibilidadKit(
+          (item.kit?.componentes ?? []).map((componente) => ({
+            varianteId: componente.varianteId,
+            cantidad: componente.cantidad,
+          })),
+          disponiblePorVariante,
+        )
+      : disponiblePorVariante.get(item.varianteProductoId ?? "") ?? 0;
+
+    const producto = item.kit?.producto ?? item.varianteProducto?.producto;
+    const titulo = item.varianteProducto
+      ? [
+          item.varianteProducto.talle,
+          item.varianteProducto.color,
+          item.varianteProducto.material,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : (item.kit?.componentes ?? [])
+          .map(
+            (componente) =>
+              `${componente.cantidad} x ${
+                [
+                  componente.variante.producto.nombre,
+                  componente.variante.talle,
+                  componente.variante.color,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+              }`,
+          )
+          .join(" + ");
+
     return {
       id: item.id,
       varianteProductoId: item.varianteProductoId,
+      kitProductoId: item.kitProductoId,
+      esKit,
       cantidad: item.cantidad,
       precioUnitario: precio,
       subtotal: precio * item.cantidad,
-      nombreProducto: item.varianteProducto.producto.nombre,
-      sku: item.varianteProducto.producto.sku,
-      imagen: item.varianteProducto.producto.imagen,
-      productoActivo: item.varianteProducto.producto.estado === "ACTIVO",
-      tituloVariante: titulo || "Variante única",
-      stockDisponible: disponible,
-      faltante: Math.max(item.cantidad - disponible, 0),
+      nombreProducto: producto?.nombre ?? "Producto",
+      sku: producto?.sku ?? "",
+      imagen: producto?.imagen ?? null,
+      productoActivo: producto?.estado === "ACTIVO",
+      tituloVariante: esKit
+        ? `Kit: ${titulo || "sin componentes"}`
+        : titulo || "Variante única",
+      stockDisponible,
+      faltante: Math.max(item.cantidad - stockDisponible, 0),
     };
   });
 

@@ -107,9 +107,11 @@ export default async function PedidoPage({ params }: Props) {
                 {item.nombreProductoSnapshot}
               </p>
               <p className="text-sm text-[#6B6B6B]">
-                {[item.varianteProducto.talle, item.varianteProducto.color, item.varianteProducto.material]
-                  .filter(Boolean)
-                  .join(" · ") || "Variante única"}{" "}
+                {item.varianteProducto
+                  ? [item.varianteProducto.talle, item.varianteProducto.color, item.varianteProducto.material]
+                      .filter(Boolean)
+                      .join(" · ") || "Variante única"
+                  : "Kit (descuenta el stock de sus componentes)"}{" "}
                 · x{item.cantidad}
               </p>
             </div>

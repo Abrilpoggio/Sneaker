@@ -155,6 +155,11 @@ model Kit {
   producto      Producto         @relation(fields: [productoId], references: [id], onDelete: Cascade)
   componentes   KitComponente[]
 
+  // Un kit se vende como una linea de carrito/pedido sin variante
+  // propia: el descuento de stock se aplica a cada componente.
+  itemsCarrito  ItemCarrito[]
+  itemsPedido   ItemPedido[]
+
   @@map("kits")
 }
 
@@ -319,10 +324,18 @@ model ItemCarrito {
 
   carritoId        String
   carrito          Carrito          @relation(fields: [carritoId], references: [id], onDelete: Cascade)
-  varianteProductoId String
-  varianteProducto   VarianteProducto @relation(fields: [varianteProductoId], references: [id])
+
+  /// RF-21: una linea apunta a una variante fisica o, si es un kit
+  /// (RF-38/RN-06), al kit. Nunca a ambos: la validacion vive en el
+  /// servicio del carrito.
+  varianteProductoId String?
+  varianteProducto   VarianteProducto? @relation(fields: [varianteProductoId], references: [id], onDelete: Restrict)
+
+  kitProductoId String?
+  kit           Kit?   @relation(fields: [kitProductoId], references: [productoId], onDelete: Restrict)
 
   @@unique([carritoId, varianteProductoId])
+  @@unique([carritoId, kitProductoId])
   @@map("items_carrito")
 }
 
@@ -382,8 +395,19 @@ model ItemPedido {
   pedidoId String
   pedido   Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
 
-  varianteProductoId String
-  varianteProducto   VarianteProducto @relation(fields: [varianteProductoId], references: [id])
+  /// RF-38: una linea vendida puede ser una variante o un kit. En el
+  /// kit se conserva la referencia para poder auditar el descuento de
+  /// cada componente (RN-06/RN-07).
+  varianteProductoId String?
+  varianteProducto   VarianteProducto? @relation(fields: [varianteProductoId], references: [id], onDelete: Restrict)
+
+  kitProductoId String?
+  kit           Kit?   @relation(fields: [kitProductoId], references: [productoId], onDelete: Restrict)
+
+  /// Snapshot de la composicion al crear el pedido. Si el administrador
+  /// edita el kit antes de aprobarse el pago, la venta descuenta las
+  /// variantes que realmente se vendieron.
+  componentesKit Json?
 
   @@index([pedidoId])
   @@map("items_pedido")

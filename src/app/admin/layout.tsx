@@ -7,6 +7,8 @@ const enlaces = [
   { href: "/admin", label: "Panel de Control" },
   { href: "/admin/productos", label: "Gestion de Productos" },
   { href: "/admin/variantes", label: "Variantes y Stock" },
+  { href: "/admin/kits", label: "Kits" },
+  { href: "/admin/extracciones", label: "Extracciones" },
   { href: "/admin/etiquetas", label: "Etiquetas de Uso" },
 ];
 

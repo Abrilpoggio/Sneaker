@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import { cambiarEstadoProductoAdmin } from "@/modules/catalogo/admin-actions";
 import { formatoPrecio } from "@/modules/catalogo/productos";
+import { calcularStockProducto } from "@/modules/inventory/services/stock";
 import { requireAdmin } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
@@ -38,6 +39,13 @@ export default async function ProductosAdminPage({
       categoria: { select: { nombre: true } },
       marca: { select: { nombre: true } },
       variantes: { select: { stockActual: true } },
+      kit: {
+        include: {
+          componentes: {
+            include: { variante: { select: { stockActual: true } } },
+          },
+        },
+      },
       etiquetas: { include: { etiqueta: { select: { nombre: true } } } },
     },
     orderBy: [{ estado: "asc" }, { actualizadoEn: "desc" }],
@@ -84,7 +92,8 @@ export default async function ProductosAdminPage({
           </thead>
           <tbody>
             {productos.map((producto) => {
-              const stock = producto.variantes.reduce((total, variante) => total + variante.stockActual, 0);
+              // RN-06: el stock del kit se deriva de sus componentes, no se persiste.
+              const stock = calcularStockProducto(producto.variantes, producto.kit);
               return (
                 <tr key={producto.id} className="border-t border-[#D9D9D9] odd:bg-white even:bg-[#FAFAFA]">
                   <td className="px-4 py-3">
@@ -100,7 +109,13 @@ export default async function ProductosAdminPage({
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{producto.sku}</td>
                   <td className="px-4 py-3">{producto.categoria.nombre}<span className="block text-xs text-[#6B6B6B]">{producto.marca.nombre}</span></td>
-                  <td className="px-4 py-3">{producto.variantes.length}</td>
+                  <td className="px-4 py-3">
+                    {producto.kit ? (
+                      <span className="font-semibold text-[#CF1A1F]">Kit · {producto.kit.componentes.length} comp.</span>
+                    ) : (
+                      producto.variantes.length
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-semibold tabular-nums">{stock}</td>
                   <td className="px-4 py-3 font-semibold tabular-nums">{formatoPrecio(Number(producto.precioVenta))}</td>
                   <td className="px-4 py-3">
@@ -110,7 +125,7 @@ export default async function ProductosAdminPage({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Link href={`/admin/productos/${producto.id}`} className="font-semibold text-[#CF1A1F] underline">Editar</Link>
+                      <Link href={producto.kit ? `/admin/kits/${producto.id}` : `/admin/productos/${producto.id}`} className="font-semibold text-[#CF1A1F] underline">Editar</Link>
                       <form action={cambiarEstadoProductoAdmin}>
                         <input type="hidden" name="productoId" value={producto.id} />
                         <input type="hidden" name="estado" value={producto.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO"} />

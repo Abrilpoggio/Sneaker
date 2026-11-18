@@ -199,6 +199,76 @@ export function SelectorVarianteCarrito({
   );
 }
 
+/**
+ * RF-21 / RF-38 / RN-06: el kit no tiene variante propia. Se agrega
+ * como una linea de carrito y el stock disponible es el del componente
+ * que alcanza para menos unidades.
+ */
+export function SelectorKitCarrito({
+  accion,
+  kitProductoId,
+  stock,
+  nombre,
+}: {
+  accion: (prev: EstadoAccionCarrito, formData: FormData) => Promise<EstadoAccionCarrito>;
+  kitProductoId: string;
+  stock: number;
+  nombre: string;
+}) {
+  const [estado, formAction] = useActionState(accion, ESTADO_INICIAL_CARRITO);
+  const [cantidad, setCantidad] = useState(1);
+  const sinStock = stock <= 0;
+
+  return (
+    <form action={formAction} noValidate className="flex flex-col gap-3">
+      <input type="hidden" name="kitProductoId" value={kitProductoId} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor="cantidad-kit" className="text-lg font-light leading-[27px] text-black">
+          Cantidad:
+        </label>
+        <input
+          id="cantidad-kit"
+          name="cantidad"
+          type="number"
+          min={1}
+          max={Math.max(1, stock)}
+          disabled={sinStock}
+          value={cantidad}
+          onChange={(event) => {
+            const valor = Number.parseInt(event.target.value, 10);
+            setCantidad(Number.isNaN(valor) || valor < 1 ? 1 : valor);
+          }}
+          className="w-20 rounded-md border border-[#D9D9D9] px-3 py-2 text-base font-medium text-[#2C2C2C] outline-none focus:border-[#CF1A1F] disabled:bg-[#F5F5F5] disabled:text-[#9E9E9E]"
+        />
+        {!sinStock && (
+          <span className="text-sm text-[#9E9E9E]">({stock} kits disponibles)</span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <BotonConEstado
+          disabled={sinStock}
+          className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {sinStock ? "Kit sin stock" : "Agregar kit al carrito"}
+        </BotonConEstado>
+        <Link
+          href="/carrito"
+          className="rounded-md border border-[#2C2C2C] bg-white px-6 py-3 text-xl font-medium leading-[16px] text-[#2C2C2C] transition-colors hover:bg-[#F5F5F5]"
+        >
+          Ver carrito
+        </Link>
+      </div>
+
+      <p className="text-sm text-[#9E9E9E]">
+        Al vender {nombre}, se descuenta el stock de cada componente por separado.
+      </p>
+      <MensajeEstado estado={estado} />
+    </form>
+  );
+}
+
 /** RF-21: alta de linea de carrito desde el detalle de producto. */
 export function BotonAgregarAlCarrito({
   accion,

@@ -344,7 +344,7 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 | 1 | Infra, base de datos, auth y roles | **Hecho** |
 | 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **Hecho:** ABM administrativo (Abril), busqueda/filtros/stock visible (Camila) y perfil/direcciones (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
 | 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | **Hecho:** carrito con reserva temporal de stock (Abril), checkout con Mercado Pago + motor de cupones/promociones (Camila) y correos + newsletter + tarifas de envio (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
-| 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | Pendiente |
+| 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | **Parcial:** kits, stock dinamico y extracciones (Camila) implementados localmente. Panel de pedidos (Abril) y reportes/seed masivo (Tadeo) pendientes. |
 
 ### Lo que falta decidir (bloquea al que siga)
 
@@ -427,9 +427,9 @@ se implementa el carrito con reserva temporal asignado a Abril:
 - Sin sesion no hay carrito: `requireCliente()` redirige a login
   (RN-01) y las server actions re-verifican contra la base.
 
-Limitacion documentada: los kits no se pueden agregar al carrito
-todavia, porque `ItemCarrito` apunta a una variante y el kit no tiene
-variantes propias; se resuelve junto con el ABM de kits (Sprint 4).
+Limitacion resuelta en Sprint 4: los kits ya se agregan al carrito como
+una linea propia y, al venderse, descuentan individualmente el stock de
+sus componentes (ver "Alcance de Camila en Sprint 4").
 
 Los tokens de `src/app/globals.css` ya no son provisionales: salieron del
 mockup de Figma (ver seccion 7). Cambiar la identidad visual es editar
@@ -533,6 +533,49 @@ Verificacion: el mismo arnes agrega verificaciones de Tadeo: tarifas
 por ciudad/provincia/normalizacion (RF-45), contenido del correo de
 confirmacion y modo simulado (RF-28), ciclo de vida de la suscripcion
 y campana de novedades (RF-43/44).
+
+### Alcance de Camila en Sprint 4
+
+En `src/modules/kits`, `src/modules/inventory`, `src/app/admin/kits` y
+`src/app/admin/extracciones` se implementa la gestion de kits y
+extracciones asignada a Camila:
+
+- **ABM de kits (RF-38 / RF-39)**: `/admin/kits` lista los kits con su
+  composicion y stock calculado. El alta crea el producto compuesto y
+  sus componentes en una sola transaccion; la edicion sincroniza la
+  composicion y la baja es logica (ACTIVO/INACTIVO) para conservar el
+  historial. La eliminacion fisica solo se permite si el kit nunca se
+  vendio ni esta en un carrito.
+- **Stock dinamico (RN-06)**: el stock de un kit no se persiste. Se
+  calcula como `min(floor(stockComponente / cantidadPorKit))` en
+  `src/modules/inventory/services/stock.ts`, formula compartida por el
+  catalogo, el panel y el checkout. Cambiar el stock de una variante
+  actualiza automaticamente el stock del kit.
+- **Descuento individual al venderse (RF-38 / RN-07)**: el kit se agrega
+  al carrito como una linea propia (`ItemCarrito.kitProductoId`) y al
+  aprobarse el pago se descuenta cada variante componente por
+  `cantidadKits * cantidadComponente`, con un `MovimientoStock` tipo
+  VENTA por variante. La reserva temporal (RN-04) y la disponibilidad
+  del carrito tambien cuentan los componentes de los kits, incluso si
+  comparten variantes con otras lineas. La composicion se congela en
+  `ItemPedido.componentesKit`, asi una edicion posterior del kit no
+  cambia el stock que se descuenta al aprobar el pago.
+- **Extracciones (RF-36)**: `/admin/extracciones` registra una
+  extraccion con variante, cantidad, motivo obligatorio y responsable
+  (usuario de la sesion). El descuento es atomico (`stockActual >=
+  cantidad`) y crea un `MovimientoStock` tipo EXTRACCION con motivo,
+  fecha y stock resultante; nunca computa como venta (RN-07). El
+  historial muestra responsable, motivo y trazabilidad por producto.
+
+Migracion: `prisma/migrations/20261117120000_kits_carrito_extracciones`
+agrega `kitProductoId` a `items_carrito`/`items_pedido`, el snapshot
+`componentesKit` al pedido y vuelve opcional `varianteProductoId` (una
+linea apunta a una variante o a un kit, nunca a ambos).
+
+Verificacion: `npx tsx scripts/prueba-kits.ts` comprueba el stock
+calculado, la reserva de un kit, la venta con descuento individual de
+componentes y el registro de extracciones. Como el resto de los
+arneses, modifica stock real: correr `npm run db:seed` para restaurar.
 
 ---
 

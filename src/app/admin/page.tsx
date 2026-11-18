@@ -21,16 +21,20 @@ export default async function PaginaAdmin() {
 
   // Verificacion de humo del Sprint 1: si la base esta conectada y las
   // migraciones aplicadas, estos conteos son coherentes.
-  const [productos, variantes, usuarios, movimientos] = await Promise.all([
+  const [productos, variantes, usuarios, movimientos, kits, extracciones] = await Promise.all([
     prisma.producto.count(),
     prisma.varianteProducto.count(),
     prisma.usuario.count(),
     prisma.movimientoStock.count(),
+    prisma.kit.count(),
+    prisma.movimientoStock.count({ where: { tipo: "EXTRACCION" } }),
   ]);
 
   const tarjetas = [
     { etiqueta: "Productos", valor: productos, destino: "/admin/productos" },
     { etiqueta: "Variantes", valor: variantes, destino: "/admin/variantes" },
+    { etiqueta: "Kits", valor: kits, destino: "/admin/kits" },
+    { etiqueta: "Extracciones", valor: extracciones, destino: "/admin/extracciones" },
     { etiqueta: "Usuarios", valor: usuarios, destino: "/admin/usuarios" },
     {
       etiqueta: "Movimientos de stock",
@@ -78,12 +82,23 @@ export default async function PaginaAdmin() {
           Catalogo e inventario
         </h2>
         <p className="mt-2 text-sm text-texto-tenue">
-          Administra productos, variantes y etiquetas de uso. Los cambios de
+          Administra productos, variantes, kits y extracciones. Los cambios de
           stock quedan registrados con responsable y motivo.
         </p>
-        <Link href="/admin/etiquetas" className="mt-3 inline-block text-sm font-semibold text-[#CF1A1F] underline">
-          Gestionar etiquetas de uso
-        </Link>
+        <div className="mt-3 flex flex-wrap gap-4">
+          <Link href="/admin/kits" className="text-sm font-semibold text-[#CF1A1F] underline">
+            Gestionar kits (stock calculado)
+          </Link>
+          <Link
+            href="/admin/extracciones"
+            className="text-sm font-semibold text-[#CF1A1F] underline"
+          >
+            Registrar extracciones
+          </Link>
+          <Link href="/admin/etiquetas" className="text-sm font-semibold text-[#CF1A1F] underline">
+            Gestionar etiquetas de uso
+          </Link>
+        </div>
       </section>
 
       <section aria-labelledby="titulo-marketing" className="rounded-card border border-borde p-4">

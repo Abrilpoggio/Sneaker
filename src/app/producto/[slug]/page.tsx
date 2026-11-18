@@ -10,6 +10,7 @@ import {
 } from "@/modules/catalogo/catalogo";
 import { accionAgregarAlCarrito } from "@/modules/carrito/actions";
 import {
+  SelectorKitCarrito,
   SelectorVarianteCarrito,
   type OpcionVarianteCarrito,
 } from "@/modules/carrito/components/controles";
@@ -259,6 +260,7 @@ export default async function DetalleProductoPage({
  * y una con 0 se muestra deshabilitada (RN-09).
  */
 function renderDesdeBase({
+  id,
   nombre,
   marca,
   categoria,
@@ -363,7 +365,7 @@ function renderDesdeBase({
               variantes={variantesVista}
             />
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <p className="text-lg font-light leading-[27px] text-black">
                 Componentes del kit:
               </p>
@@ -395,6 +397,13 @@ function renderDesdeBase({
                   );
                 })}
               </ul>
+
+              <SelectorKitCarrito
+                accion={accionAgregarAlCarrito}
+                kitProductoId={id}
+                stock={stockTotal}
+                nombre={nombre}
+              />
             </div>
           )}
 
@@ -428,7 +437,7 @@ function renderDesdeBase({
           <p className="text-base text-[#6B6B6B]">
             {variantesVista.length > 0
               ? "Elegí una variante y agregala al carrito. Al comprar, tus productos quedan reservados durante 1 a 2 minutos."
-              : "El carrito de kits se habilita con el checkout final."}
+              : "El kit se agrega al carrito como una unidad y descuenta el stock de cada componente (RN-06)."}
           </p>
 
           <p className="text-sm text-[#9E9E9E]">

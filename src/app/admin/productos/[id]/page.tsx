@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductoForm } from "@/modules/catalogo/components/producto-form";
 import { EliminarVarianteButton, VarianteForm } from "@/modules/catalogo/components/variante-form";
 import { formatoPrecio } from "@/modules/catalogo/productos";
+import { calcularStockProducto } from "@/modules/inventory/services/stock";
 
 export const metadata: Metadata = { title: "Editar producto" };
 
@@ -25,6 +26,13 @@ export default async function ProductoAdminDetallePage({
           include: { _count: { select: { itemsCarrito: true, itemsPedido: true, movimientos: true, componentesKit: true } } },
           orderBy: [{ talle: "asc" }, { color: "asc" }],
         },
+        kit: {
+          include: {
+            componentes: {
+              include: { variante: { select: { stockActual: true } } },
+            },
+          },
+        },
         etiquetas: { select: { etiquetaId: true, etiqueta: { select: { nombre: true } } } },
       },
     }),
@@ -35,7 +43,8 @@ export default async function ProductoAdminDetallePage({
   ]);
   if (!producto) notFound();
 
-  const stockTotal = producto.variantes.reduce((total, variante) => total + variante.stockActual, 0);
+  // RN-06: si el producto es un kit, el stock se deriva de sus componentes.
+  const stockTotal = calcularStockProducto(producto.variantes, producto.kit);
 
   return (
     <div className="flex flex-col gap-8">
@@ -44,7 +53,16 @@ export default async function ProductoAdminDetallePage({
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-[#9E9E9E]">{producto.sku}</p>
           <h1 className="mt-1 text-3xl font-bold text-[#2C2C2C]">{producto.nombre}</h1>
-          <p className="mt-2 text-sm text-[#6B6B6B]">{producto.variantes.length} variantes · {stockTotal} unidades en stock · {formatoPrecio(Number(producto.precioVenta))}</p>
+          <p className="mt-2 text-sm text-[#6B6B6B]">
+            {producto.kit
+              ? `${producto.kit.componentes.length} componentes · ${stockTotal} kits disponibles (stock calculado RN-06) · ${formatoPrecio(Number(producto.precioVenta))}`
+              : `${producto.variantes.length} variantes · ${stockTotal} unidades en stock · ${formatoPrecio(Number(producto.precioVenta))}`}
+          </p>
+          {producto.kit && (
+            <Link href={`/admin/kits/${producto.id}`} className="mt-2 inline-block text-sm font-semibold text-[#CF1A1F] underline">
+              Editar composición del kit →
+            </Link>
+          )}
         </div>
       </header>
 

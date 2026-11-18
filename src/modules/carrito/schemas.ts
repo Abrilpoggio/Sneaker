@@ -18,25 +18,34 @@ export const CANTIDAD_MAXIMA_POR_ITEM = 99;
 export const MENSAJE_SESION_REQUERIDA =
   "Iniciá sesión para agregar productos al carrito (RN-01).";
 
-const idVariante = z
+const idReferencia = z
   .string()
   .trim()
-  .min(20, "Variante invalida.")
-  .max(40, "Variante invalida.");
+  .min(20, "Referencia invalida.")
+  .max(40, "Referencia invalida.");
 
-/** RF-21: alta de linea de carrito con tope de stock (RN-05). */
-export const agregarAlCarritoSchema = z.object({
-  varianteId: idVariante,
-  cantidad: z.coerce
-    .number({ error: "Ingresá una cantidad válida" })
-    .int("La cantidad debe ser un número entero")
-    .min(1, "La cantidad mínima es 1")
-    .max(CANTIDAD_MAXIMA_POR_ITEM, `La cantidad máxima es ${CANTIDAD_MAXIMA_POR_ITEM}`),
-});
+/**
+ * RF-21 / RF-38: alta de linea de carrito. Una linea apunta a una
+ * variante fisica o a un kit, nunca a ambos (RN-06).
+ */
+export const agregarAlCarritoSchema = z
+  .object({
+    varianteId: idReferencia.optional(),
+    kitProductoId: idReferencia.optional(),
+    cantidad: z.coerce
+      .number({ error: "Ingresá una cantidad válida" })
+      .int("La cantidad debe ser un número entero")
+      .min(1, "La cantidad mínima es 1")
+      .max(CANTIDAD_MAXIMA_POR_ITEM, `La cantidad máxima es ${CANTIDAD_MAXIMA_POR_ITEM}`),
+  })
+  .refine(
+    (datos) => Boolean(datos.varianteId) !== Boolean(datos.kitProductoId),
+    "Indicá una variante o un kit, no ambos.",
+  );
 
 /** RF-21: modificacion de cantidad; 0 elimina la linea. */
 export const actualizarCantidadSchema = z.object({
-  itemId: idVariante,
+  itemId: idReferencia,
   cantidad: z.coerce
     .number({ error: "Ingresá una cantidad válida" })
     .int("La cantidad debe ser un número entero")
@@ -45,7 +54,7 @@ export const actualizarCantidadSchema = z.object({
 });
 
 export const quitarItemSchema = z.object({
-  itemId: idVariante,
+  itemId: idReferencia,
 });
 
 /**

@@ -31,6 +31,14 @@ export default async function VariantesAdminPage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-[#9E9E9E]">Inventario</p>
         <h1 className="mt-1 text-3xl font-bold text-[#2C2C2C]">Variantes y Stock</h1>
         <p className="mt-2 text-sm text-[#6B6B6B]">Para editar datos o ajustar stock con motivo, abre la ficha del producto.</p>
+        <div className="mt-3 flex flex-wrap gap-4 text-sm">
+          <Link href="/admin/extracciones" className="font-semibold text-[#CF1A1F] underline">
+            Registrar extraccion
+          </Link>
+          <Link href="/admin/kits" className="font-semibold text-[#CF1A1F] underline">
+            Gestionar kits
+          </Link>
+        </div>
       </header>
 
       <div className="overflow-x-auto rounded-md border border-[#D9D9D9]">

@@ -61,7 +61,7 @@ function estadoError(error: unknown): EstadoAccionCarrito {
   };
 }
 
-/** RF-21 / RN-01: agrega una variante al carrito del cliente logueado. */
+/** RF-21 / RF-38: agrega una variante o un kit al carrito del cliente logueado. */
 export async function accionAgregarAlCarrito(
   _prev: EstadoAccionCarrito,
   formData: FormData,
@@ -71,7 +71,8 @@ export async function accionAgregarAlCarrito(
   try {
     const usuarioId = await resolverComprador(sesion.user.id, sesion.user.email);
     await agregarItemCarrito(usuarioId, {
-      varianteId: formData.get("varianteId"),
+      varianteId: formData.get("varianteId") || undefined,
+      kitProductoId: formData.get("kitProductoId") || undefined,
       cantidad: formData.get("cantidad"),
     });
     revalidarRutasCarrito();

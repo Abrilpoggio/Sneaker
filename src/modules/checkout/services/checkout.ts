@@ -186,10 +186,14 @@ export async function resumenCheckout(
   const ahora = new Date();
   const vigentes = await promocionesVigentes(ahora);
 
-  // Necesito el productoId de cada variante: el estado de carrito trae
-  // datos para pintar; el motor de promos consulta por producto.
+  // Necesito el productoId de cada linea: el estado de carrito trae
+  // datos para pintar; el motor de promos consulta por producto. En
+  // los kits el propio kitProductoId ya es el id del producto.
+  const variantesIds = carrito.items
+    .map((item) => item.varianteProductoId)
+    .filter((id): id is string => Boolean(id));
   const variantes = await prisma.varianteProducto.findMany({
-    where: { id: { in: carrito.items.map((item) => item.varianteProductoId) } },
+    where: { id: { in: variantesIds } },
     select: { id: true, productoId: true },
   });
   const productoPorVariante = new Map(variantes.map((v) => [v.id, v.productoId]));
@@ -198,7 +202,11 @@ export async function resumenCheckout(
   const descuentosPorPromocion = new Map<string, PromocionAplicada>();
 
   for (const item of carrito.items) {
-    const productoId = productoPorVariante.get(item.varianteProductoId);
+    const productoId = item.kitProductoId
+      ? item.kitProductoId
+      : item.varianteProductoId
+        ? productoPorVariante.get(item.varianteProductoId)
+        : undefined;
     const promoData = productoId ? resolverPromocionProducto(vigentes, productoId) : null;
     let promocion: PromocionAplicada | null = null;
     if (promoData) {
@@ -336,15 +344,29 @@ export async function crearPedidoPendiente(
     );
 
     // Items congelados desde el carrito (precio ya congelado al
-    // agregar la linea, decision 8 del modelado).
+    // agregar la linea, decision 8 del modelado). Un kit conserva la
+    // referencia al kit y no una variante (RF-38).
     const items = await tx.itemCarrito.findMany({
       where: { carritoId: carrito.carritoId },
       select: {
         cantidad: true,
         precioUnitario: true,
         varianteProductoId: true,
+        kitProductoId: true,
         varianteProducto: {
           select: { producto: { select: { nombre: true, sku: true } } },
+        },
+        kit: {
+          select: {
+            producto: { select: { nombre: true, sku: true } },
+            componentes: {
+              select: {
+                varianteId: true,
+                cantidad: true,
+                variante: { select: { producto: { select: { nombre: true } } } },
+              },
+            },
+          },
         },
       },
     });
@@ -373,14 +395,27 @@ export async function crearPedidoPendiente(
         clienteId: usuarioId,
         cuponId: resumen.cupon?.id ?? null,
         items: {
-          create: items.map((item) => ({
-            cantidad: item.cantidad,
-            precioUnitario: item.precioUnitario,
-            subtotal: Number(item.precioUnitario) * item.cantidad,
-            nombreProductoSnapshot: item.varianteProducto.producto.nombre,
-            skuSnapshot: item.varianteProducto.producto.sku,
-            varianteProductoId: item.varianteProductoId,
-          })),
+          create: items.map((item) => {
+            const producto = item.kit?.producto ?? item.varianteProducto?.producto;
+            return {
+              cantidad: item.cantidad,
+              precioUnitario: item.precioUnitario,
+              subtotal: Number(item.precioUnitario) * item.cantidad,
+              nombreProductoSnapshot: producto?.nombre ?? "Producto",
+              skuSnapshot: producto?.sku ?? "",
+              varianteProductoId: item.varianteProductoId,
+              kitProductoId: item.kitProductoId,
+              ...(item.kit
+                ? {
+                    componentesKit: item.kit.componentes.map((componente) => ({
+                      varianteId: componente.varianteId,
+                      cantidad: componente.cantidad,
+                      nombre: componente.variante.producto.nombre,
+                    })),
+                  }
+                : {}),
+            };
+          }),
         },
         promociones: {
           create: [...new Map(
@@ -399,6 +434,36 @@ export async function crearPedidoPendiente(
 
     return { ...pedido, total: Number(pedido.montoTotal) };
   });
+}
+
+/**
+ * RF-38: el pedido congela la composicion del kit para que una edicion
+ * posterior del ABM no cambie el stock que se descuenta al aprobar el
+ * pago. Los pedidos viejos sin snapshot usan la composicion actual.
+ */
+type ComponenteKitSnapshot = { varianteId: string; cantidad: number; nombre?: string };
+
+function leerComponentesKitSnapshot(value: unknown): ComponenteKitSnapshot[] | null {
+  if (!Array.isArray(value)) return null;
+  const componentes: ComponenteKitSnapshot[] = [];
+  for (const item of value) {
+    if (
+      item &&
+      typeof item === "object" &&
+      typeof (item as { varianteId?: unknown }).varianteId === "string" &&
+      typeof (item as { cantidad?: unknown }).cantidad === "number"
+    ) {
+      componentes.push({
+        varianteId: (item as { varianteId: string }).varianteId,
+        cantidad: (item as { cantidad: number }).cantidad,
+        nombre:
+          typeof (item as { nombre?: unknown }).nombre === "string"
+            ? (item as { nombre: string }).nombre
+            : undefined,
+      });
+    }
+  }
+  return componentes.length > 0 ? componentes : null;
 }
 
 /**
@@ -444,43 +509,99 @@ export async function aprobarPedidoPendiente(
     }
 
     // 2. Descuento de stock con guardas atomicas (RN-05) a partir de
-    // los items congelados del pedido.
+    // los items congelados del pedido. RN-06 / RF-38: vender un kit
+    // descuenta individualmente cada variante componente.
     const items = await tx.itemPedido.findMany({
       where: { pedidoId: pedido.id },
       select: {
         cantidad: true,
         varianteProductoId: true,
-        varianteProducto: { select: { producto: { select: { nombre: true } } } },
+        kitProductoId: true,
+        componentesKit: true,
+        varianteProducto: {
+          select: { producto: { select: { nombre: true } } },
+        },
+        kit: {
+          select: {
+            producto: { select: { nombre: true } },
+            componentes: {
+              select: {
+                varianteId: true,
+                cantidad: true,
+                variante: { select: { producto: { select: { nombre: true } } } },
+              },
+            },
+          },
+        },
       },
     });
 
+    // Componentes compartidos por varias lineas se agrupan en un solo
+    // descuento para no competir contra si mismos.
+    const requerimientos = new Map<
+      string,
+      { cantidad: number; nombre: string; justificacion: string }
+    >();
     for (const item of items) {
+      if (item.varianteProductoId) {
+        const actual = requerimientos.get(item.varianteProductoId);
+        requerimientos.set(item.varianteProductoId, {
+          cantidad: (actual?.cantidad ?? 0) + item.cantidad,
+          nombre: item.varianteProducto?.producto.nombre ?? "una variante",
+          justificacion: `Venta del pedido ${numeroOrden}`,
+        });
+      }
+      const componentes =
+        leerComponentesKitSnapshot(item.componentesKit) ??
+        item.kit?.componentes.map((componente) => ({
+          varianteId: componente.varianteId,
+          cantidad: componente.cantidad,
+          nombre: componente.variante.producto.nombre,
+        })) ??
+        [];
+
+      for (const componente of componentes) {
+        const unidades = item.cantidad * componente.cantidad;
+        const actual = requerimientos.get(componente.varianteId);
+        requerimientos.set(componente.varianteId, {
+          cantidad: (actual?.cantidad ?? 0) + unidades,
+          nombre: componente.nombre ?? actual?.nombre ?? "un componente del kit",
+          justificacion: `Venta del pedido ${numeroOrden} (kit ${
+            item.kit?.producto.nombre ?? ""
+          })`,
+        });
+      }
+    }
+
+    for (const [varianteId, requerimiento] of requerimientos) {
       const actualizado = await tx.varianteProducto.updateMany({
-        where: { id: item.varianteProductoId, stockActual: { gte: item.cantidad } },
-        data: { stockActual: { decrement: item.cantidad } },
+        where: { id: varianteId, stockActual: { gte: requerimiento.cantidad } },
+        data: { stockActual: { decrement: requerimiento.cantidad } },
       });
       if (actualizado.count === 0) {
         throw new ErrorNegocioCheckout(
           "STOCK_INSUFICIENTE",
-          `Alguien compró las últimas unidades de "${item.varianteProducto.producto.nombre}" mientras se cobraba (RN-05).`,
+          `Alguien compró las últimas unidades de "${requerimiento.nombre}" mientras se cobraba (RN-05).`,
         );
       }
     }
 
-    // 3. Movimientos de stock tipo VENTA (RF-35 / RN-07).
+    // 3. Movimientos de stock tipo VENTA (RF-35 / RN-07): uno por
+    // variante descontada, con el detalle del kit cuando corresponde.
+    const variantesAfectadas = [...requerimientos.keys()];
     const stockPostVenta = await tx.varianteProducto.findMany({
-      where: { id: { in: items.map((i) => i.varianteProductoId) } },
+      where: { id: { in: variantesAfectadas } },
       select: { id: true, stockActual: true },
     });
     const stockPorVariante = new Map(stockPostVenta.map((v) => [v.id, v.stockActual]));
 
     await tx.movimientoStock.createMany({
-      data: items.map((item) => ({
+      data: [...requerimientos].map(([varianteId, requerimiento]) => ({
         tipo: "VENTA" as const,
-        cantidad: item.cantidad,
-        justificacion: `Venta del pedido ${numeroOrden}`,
-        stockResultante: stockPorVariante.get(item.varianteProductoId) ?? null,
-        varianteProductoId: item.varianteProductoId,
+        cantidad: requerimiento.cantidad,
+        justificacion: requerimiento.justificacion,
+        stockResultante: stockPorVariante.get(varianteId) ?? null,
+        varianteProductoId: varianteId,
         responsableId: pedido.clienteId,
         pedidoId: pedido.id,
       })),
@@ -545,6 +666,7 @@ export async function obtenerPedidoConfirmado(usuarioId: string, numeroOrden: st
           varianteProducto: {
             select: { talle: true, color: true, material: true },
           },
+          kitProductoId: true,
         },
       },
     },

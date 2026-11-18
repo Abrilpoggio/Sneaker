@@ -83,6 +83,7 @@ const SELECCION_PEDIDO_CORREO = {
       nombreProductoSnapshot: true,
       skuSnapshot: true,
       varianteProducto: { select: { talle: true, color: true, material: true } },
+      kitProductoId: true,
     },
   },
 } satisfies Prisma.PedidoSelect;
@@ -108,13 +109,13 @@ export async function obtenerPedidoParaCorreo(
 export function construirCorreoConfirmacion(pedido: PedidoParaCorreo): string {
   const filas = pedido.items
     .map((item) => {
-      const variante = [
-        item.varianteProducto.talle,
-        item.varianteProducto.color,
-        item.varianteProducto.material,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      const variante = item.varianteProducto
+        ? [item.varianteProducto.talle, item.varianteProducto.color, item.varianteProducto.material]
+            .filter(Boolean)
+            .join(" · ")
+        : item.kitProductoId
+          ? "Kit (componentes descontados individualmente)"
+          : "Variante unica";
       return `<tr>
   <td style="padding:8px 0;border-bottom:1px solid #eee;">
     ${item.nombreProductoSnapshot}<br>

@@ -186,7 +186,8 @@ CREATE TABLE "items_carrito" (
     "precioUnitario" DECIMAL(12,2) NOT NULL,
     "creadoEn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "carritoId" TEXT NOT NULL,
-    "varianteProductoId" TEXT NOT NULL,
+    "varianteProductoId" TEXT,
+    "kitProductoId" TEXT,
 
     CONSTRAINT "items_carrito_pkey" PRIMARY KEY ("id")
 );
@@ -221,7 +222,9 @@ CREATE TABLE "items_pedido" (
     "nombreProductoSnapshot" TEXT NOT NULL,
     "skuSnapshot" TEXT NOT NULL,
     "pedidoId" TEXT NOT NULL,
-    "varianteProductoId" TEXT NOT NULL,
+    "varianteProductoId" TEXT,
+    "kitProductoId" TEXT,
+    "componentesKit" JSONB,
 
     CONSTRAINT "items_pedido_pkey" PRIMARY KEY ("id")
 );
@@ -370,6 +373,9 @@ CREATE UNIQUE INDEX "carritos_clienteId_key" ON "carritos"("clienteId");
 CREATE UNIQUE INDEX "items_carrito_carritoId_varianteProductoId_key" ON "items_carrito"("carritoId", "varianteProductoId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "items_carrito_carritoId_kitProductoId_key" ON "items_carrito"("carritoId", "kitProductoId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "pedidos_numeroOrden_key" ON "pedidos"("numeroOrden");
 
 -- CreateIndex
@@ -448,6 +454,9 @@ ALTER TABLE "items_carrito" ADD CONSTRAINT "items_carrito_carritoId_fkey" FOREIG
 ALTER TABLE "items_carrito" ADD CONSTRAINT "items_carrito_varianteProductoId_fkey" FOREIGN KEY ("varianteProductoId") REFERENCES "variantes_producto"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "items_carrito" ADD CONSTRAINT "items_carrito_kitProductoId_fkey" FOREIGN KEY ("kitProductoId") REFERENCES "kits"("productoId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "pedidos" ADD CONSTRAINT "pedidos_clienteId_fkey" FOREIGN KEY ("clienteId") REFERENCES "clientes"("usuarioId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -458,6 +467,9 @@ ALTER TABLE "items_pedido" ADD CONSTRAINT "items_pedido_pedidoId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "items_pedido" ADD CONSTRAINT "items_pedido_varianteProductoId_fkey" FOREIGN KEY ("varianteProductoId") REFERENCES "variantes_producto"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "items_pedido" ADD CONSTRAINT "items_pedido_kitProductoId_fkey" FOREIGN KEY ("kitProductoId") REFERENCES "kits"("productoId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "promociones_productos" ADD CONSTRAINT "promociones_productos_promocionId_fkey" FOREIGN KEY ("promocionId") REFERENCES "promociones"("id") ON DELETE CASCADE ON UPDATE CASCADE;

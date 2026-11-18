@@ -19,6 +19,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { calcularStockProducto } from "@/modules/inventory/services/stock";
 
 /** Umbral de RN-09: 10 unidades o menos disparan el aviso. */
 export const UMBRAL_ULTIMAS_UNIDADES = 10;
@@ -98,22 +99,10 @@ function normalizar(
 /**
  * RN-06: el stock de un kit se deriva del componente con menor
  * disponibilidad (cuantas unidades de kit alcanzan). Para productos
- * normales es la suma del stock de sus variantes.
+ * normales es la suma del stock de sus variantes. La formula vive en
+ * inventory/services/stock.ts para compartirla con el panel y el
+ * checkout.
  */
-function calcularStockProducto(
-  variantes: { stockActual: number }[],
-  kit?: { componentes: { cantidad: number; variante: { stockActual: number } }[] } | null,
-): number {
-  if (kit) {
-    if (kit.componentes.length === 0) return 0;
-    return Math.min(
-      ...kit.componentes.map((componente) =>
-        Math.floor(componente.variante.stockActual / componente.cantidad),
-      ),
-    );
-  }
-  return variantes.reduce((total, variante) => total + variante.stockActual, 0);
-}
 
 function construirWhere(filtros: FiltrosCatalogo): Prisma.ProductoWhereInput {
   const condiciones: Prisma.ProductoWhereInput[] = [
