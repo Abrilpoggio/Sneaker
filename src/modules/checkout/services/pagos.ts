@@ -69,42 +69,60 @@ export async function crearPreferenciaPago(
     return { modo: "SIMULADO", preferenciaId: null, urlPago: null };
   }
 
+  const esHttpsPublico = opciones.urlBase.startsWith("https://");
+  const cuerpoPreferencia: Record<string, unknown> = {
+    external_reference: pedido.numeroOrden,
+    items: [
+      {
+        title: `Pedido ${pedido.numeroOrden} - Sneaker`,
+        quantity: 1,
+        currency_id: "ARS",
+        unit_price: Number(pedido.total),
+      },
+    ],
+    payer: opciones.correoComprador ? { email: opciones.correoComprador } : undefined,
+    back_urls: {
+      success: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
+      failure: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
+      pending: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
+    },
+  };
+
+  // Mercado Pago exige URL publica HTTPS para notification_url y auto_return
+  if (esHttpsPublico) {
+    cuerpoPreferencia.notification_url = `${opciones.urlBase}/api/pagos/webhook`;
+    cuerpoPreferencia.auto_return = "approved";
+  }
+
   const respuesta = await fetch(`${API_MERCADO_PAGO}/checkout/preferences`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
     },
-    body: JSON.stringify({
-      external_reference: pedido.numeroOrden,
-      items: [
-        {
-          title: `Pedido ${pedido.numeroOrden} - Sneaker`,
-          quantity: 1,
-          currency_id: "ARS",
-          unit_price: pedido.total,
-        },
-      ],
-      payer: { email: opciones.correoComprador },
-      notification_url: `${opciones.urlBase}/api/pagos/webhook`,
-      back_urls: {
-        success: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
-        failure: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
-        pending: `${opciones.urlBase}/pedido/${pedido.numeroOrden}`,
-      },
-      auto_return: "approved",
-    }),
+    body: JSON.stringify(cuerpoPreferencia),
   });
 
   if (!respuesta.ok) {
+    const detalleError = await respuesta.text().catch(() => "");
+    console.error(`[mercadopago] Error al crear preferencia (${respuesta.status}):`, detalleError);
     throw new ErrorNegocioCheckout(
       "MP_PREFERENCIA",
-      "Mercado Pago rechazó la creación del pago. Probá de nuevo en unos minutos.",
+      "Mercado Pago rechazó la creación del pago. Verificá las credenciales o probá de nuevo en unos minutos.",
     );
   }
 
-  const preferencia = (await respuesta.json()) as { id: string; init_point: string };
-  return { modo: "REAL", preferenciaId: preferencia.id, urlPago: preferencia.init_point };
+  const preferencia = (await respuesta.json()) as {
+    id: string;
+    init_point?: string;
+    sandbox_init_point?: string;
+  };
+  const esCredencialPrueba = (process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "").startsWith("TEST-");
+  const urlPago = esCredencialPrueba
+    ? (preferencia.sandbox_init_point ?? preferencia.init_point ?? null)
+    : (preferencia.init_point ?? preferencia.sandbox_init_point ?? null);
+
+  return { modo: "REAL", preferenciaId: preferencia.id, urlPago };
 }
 
 /** Asocia la preferencia creada al pedido pendiente. */
@@ -150,7 +168,9 @@ export async function pagarSimuladoAprobado(
   cuponCodigo?: string | null,
 ): Promise<string> {
   const pedido = await crearPedidoPendiente(usuarioId, { cuponCodigo });
-  await aprobarPedidoPendiente(pedido.numeroOrden, { metodoPago: "simulado" });
+  await aprobarPedidoPendiente(pedido.numeroOrden, {
+    metodoPago: "Mercado Pago (Checkout Pro)",
+  });
   await notificarConfirmacion(pedido.numeroOrden);
   return pedido.numeroOrden;
 }
@@ -161,7 +181,9 @@ export async function pagarSimuladoRechazado(
   cuponCodigo?: string | null,
 ): Promise<string> {
   const pedido = await crearPedidoPendiente(usuarioId, { cuponCodigo });
-  await rechazarPedidoPendiente(pedido.numeroOrden, { metodoPago: "simulado" });
+  await rechazarPedidoPendiente(pedido.numeroOrden, {
+    metodoPago: "Mercado Pago (Checkout Pro)",
+  });
   return pedido.numeroOrden;
 }
 
@@ -173,8 +195,9 @@ export async function iniciarPagoMercadoPago(
   usuarioId: string,
   correoComprador: string,
   urlBase: string,
+  cuponCodigo?: string | null,
 ): Promise<PreferenciaPago & { numeroOrden: string }> {
-  const pedido = await crearPedidoPendiente(usuarioId);
+  const pedido = await crearPedidoPendiente(usuarioId, { cuponCodigo });
   const preferencia = await crearPreferenciaPago(pedido, { correoComprador, urlBase });
   await registrarPreferencia(pedido.numeroOrden, preferencia.preferenciaId);
   return { ...preferencia, numeroOrden: pedido.numeroOrden };

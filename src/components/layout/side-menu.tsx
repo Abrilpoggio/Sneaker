@@ -294,85 +294,87 @@ export function SideMenu() {
 
   return (
     <>
-      {/* Hamburguesa 42 x 42 */}
+      {/* Hamburguesa compacta */}
       <button
         type="button"
         aria-label="Abrir menú"
         aria-expanded={abierto}
         onClick={() => setAbierto(true)}
-        className="flex h-[42px] w-[42px] flex-col items-center justify-center gap-[6.5px] rounded-md text-white transition-opacity hover:opacity-80"
+        className="flex h-[38px] w-[38px] flex-col items-center justify-center gap-[5.5px] rounded-md text-white transition-opacity hover:opacity-80"
       >
-        <span aria-hidden className="block h-[2px] w-[28px] rounded-full bg-white" />
-        <span aria-hidden className="block h-[2px] w-[28px] rounded-full bg-white" />
-        <span aria-hidden className="block h-[2px] w-[28px] rounded-full bg-white" />
+        <span aria-hidden className="block h-[2px] w-[24px] rounded-full bg-white" />
+        <span aria-hidden className="block h-[2px] w-[24px] rounded-full bg-white" />
+        <span aria-hidden className="block h-[2px] w-[24px] rounded-full bg-white" />
       </button>
 
       {abierto && (
         <div className="fixed inset-0 z-50">
-          {/* Fondo oscuro */}
+          {/* Fondo semi-transparente con desenfoque sutil */}
           <button
             type="button"
             aria-label="Cerrar menú"
             onClick={cerrarMenuCompleto}
-            className="absolute inset-0 bg-black/50 transition-opacity"
+            className="absolute inset-0 bg-black/40 backdrop-blur-[1px] transition-opacity"
           />
 
-          {/* Panel lateral con gradiente oscuro -> rojo */}
+          {/* Ventana emergente compacta con fondo degradado de dos tonos */}
           <aside
             role="dialog"
-            aria-label="Menú lateral"
-            className="absolute right-0 top-0 flex h-full w-full max-w-[475px] flex-col overflow-y-auto bg-[linear-gradient(180deg,#2C2828_0%,#592625_48%,#B3211E_100%)] px-[28px] pt-[27px] pb-10 shadow-2xl"
+            aria-label="Menú de usuario"
+            className="absolute right-3 top-3 flex max-h-[calc(100vh-24px)] w-[calc(100vw-24px)] max-w-[330px] flex-col overflow-y-auto rounded-2xl border border-white/15 bg-[linear-gradient(180deg,#2C2828_0%,#6E1E1C_46%,#C92824_100%)] p-5 shadow-[0_18px_42px_rgba(0,0,0,0.55)] sm:right-6 sm:top-4"
           >
-            {/* Boton X superior izquierdo */}
-            <div className="flex items-center">
+            {/* Cabecera compacta con título y botón cerrar */}
+            <div className="flex items-center justify-between pb-3">
+              <span className="text-xs font-bold tracking-widest uppercase text-white/75">
+                {esAdmin ? "Panel Admin" : "Mi Cuenta"}
+              </span>
               <button
                 type="button"
                 aria-label="Cerrar menú"
                 onClick={cerrarMenuCompleto}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-opacity hover:opacity-80"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <svg
                   aria-hidden
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.6"
-                  className="h-7 w-7"
+                  strokeWidth="2.4"
+                  className="h-4 w-4"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="mt-[40px] flex w-full flex-col gap-[38px]">
-              {/* Bloque superior rojo: Visitante vs Usuario logueado */}
+            <div className="flex w-full flex-col gap-4">
+              {/* Bloque superior: Botones negros compactos (Visitante) o Resumen de perfil (Logueado) */}
               {!autenticado ? (
-                <div className="grid w-full grid-cols-2 gap-3.5 rounded-[20px] bg-[#EC3834] px-4 py-[18px] shadow-[0_6px_8px_rgba(0,0,0,0.35)]">
+                <div className="grid w-full grid-cols-2 gap-2.5 rounded-xl bg-black/20 p-2.5 ring-1 ring-white/15">
                   <Link
                     href={loginHref}
                     onClick={cerrarMenuCompleto}
-                    className="flex h-[46px] items-center justify-center rounded-[12px] bg-[#2C2C2C] px-3 text-[19px] font-medium italic text-white shadow-[0_3px_4px_rgba(0,0,0,0.3)] transition-opacity hover:opacity-90 sm:text-[21px]"
+                    className="flex h-[38px] items-center justify-center rounded-lg bg-[#1F1F1F] px-3 text-sm font-semibold italic text-white shadow-sm transition-colors hover:bg-black"
                   >
                     Iniciar sesión
                   </Link>
                   <Link
                     href={registroHref}
                     onClick={cerrarMenuCompleto}
-                    className="flex h-[46px] items-center justify-center rounded-[12px] bg-[#2C2C2C] px-3 text-[19px] font-medium italic text-white shadow-[0_3px_4px_rgba(0,0,0,0.3)] transition-opacity hover:opacity-90 sm:text-[21px]"
+                    className="flex h-[38px] items-center justify-center rounded-lg bg-[#1F1F1F] px-3 text-sm font-semibold italic text-white shadow-sm transition-colors hover:bg-black"
                   >
                     Registrarse
                   </Link>
                 </div>
               ) : (
-                <div className="relative flex min-h-[86px] w-full items-center gap-[18px] rounded-[20px] bg-[#EC3834] px-6 py-4 shadow-[0_6px_8px_rgba(0,0,0,0.35)]">
-                  {/* Profile Circle blanco fino (1:1 con Figma) */}
+                <div className="relative flex w-full items-center gap-3 rounded-xl bg-black/25 px-3.5 py-3 ring-1 ring-white/15">
                   <svg
                     aria-hidden
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
-                    strokeWidth="1.4"
-                    className="h-[52px] w-[52px] shrink-0"
+                    strokeWidth="1.6"
+                    className="h-10 w-10 shrink-0"
                   >
                     <circle cx="12" cy="12" r="9.5" />
                     <circle cx="12" cy="9.5" r="3" />
@@ -383,38 +385,32 @@ export function SideMenu() {
                   </svg>
 
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[20px] font-normal italic leading-[26px] text-white sm:text-[21px]">
+                    <span className="truncate text-sm font-semibold italic text-white">
                       {sesion?.user?.name ?? sesion?.user?.usuario ?? "Usuario"}
                     </span>
-                    <span className="truncate text-[19px] font-normal italic leading-[25px] text-white sm:text-[21px]">
+                    <span className="truncate text-xs italic text-white/80">
                       {sesion?.user?.email}
                     </span>
                   </div>
 
                   {esAdmin && (
-                    <span className="absolute right-3 top-2.5 flex h-[28px] w-[64px] items-center justify-center rounded-[16px] bg-[#DBEAFE] text-[13px] font-bold leading-[18px] text-[#1E40AF]">
+                    <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[10px] font-bold text-[#1E40AF]">
                       ADMIN
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Bloque inferior rojo con opciones */}
-              <nav
-                aria-label="Opciones del menú"
-                className="flex w-full flex-col items-center rounded-[28px] bg-[#EC3834] px-7 py-7 shadow-[0_6px_8px_rgba(0,0,0,0.35)]"
-              >
-                <div className="flex w-full max-w-[362px] flex-col gap-[20px]">
-                  {items.map((item, idx) => (
-                    <div key={item.href} className="flex flex-col gap-[20px]">
-                      {idx > 0 && (
-                        <div className="h-[2.5px] w-full rounded-full bg-white" />
-                      )}
+              {/* Opciones directamente sobre el fondo degradado de dos colores */}
+              <nav aria-label="Opciones del menú" className="flex w-full flex-col">
+                <div className="flex w-full flex-col divide-y divide-white/20">
+                  {items.map((item) => (
+                    <div key={item.href} className="py-1">
                       {autenticado ? (
                         <Link
                           href={item.href}
                           onClick={cerrarMenuCompleto}
-                          className="flex items-center gap-4 text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
+                          className="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-[15px] font-medium italic text-white transition-colors hover:bg-white/15 [&_svg]:h-5 [&_svg]:w-5"
                         >
                           {item.icono}
                           <span>{item.label}</span>
@@ -423,7 +419,7 @@ export function SideMenu() {
                         <button
                           type="button"
                           onClick={() => setModalAuthAbierto(true)}
-                          className="flex w-full cursor-pointer items-center gap-4 text-left text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
+                          className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-[15px] font-medium italic text-white transition-colors hover:bg-white/15 [&_svg]:h-5 [&_svg]:w-5"
                         >
                           {item.icono}
                           <span>{item.label}</span>
@@ -432,22 +428,21 @@ export function SideMenu() {
                     </div>
                   ))}
 
-                  {/* Cerrar sesion cuando el usuario esta autenticado */}
+                  {/* Cerrar sesión cuando el usuario está autenticado */}
                   {autenticado && (
-                    <div className="flex flex-col gap-[20px]">
-                      <div className="h-[2.5px] w-full rounded-full bg-white" />
+                    <div className="pt-1">
                       <button
                         type="button"
                         onClick={() => void manejarCerrarSesion()}
-                        className="flex w-full cursor-pointer items-center gap-4 text-left text-[20px] font-normal italic leading-[28px] text-white transition-opacity hover:opacity-85 sm:text-[22px]"
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-[15px] font-medium italic text-white transition-colors hover:bg-black/25"
                       >
                         <svg
                           aria-hidden
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="2.2"
-                          className="h-7 w-7 shrink-0"
+                          strokeWidth="2"
+                          className="h-5 w-5 shrink-0"
                         >
                           <path
                             strokeLinecap="round"
@@ -474,14 +469,14 @@ export function SideMenu() {
             </div>
           </aside>
 
-          {/* Ventana emergente de aviso para visitantes no autenticados */}
+          {/* Ventana emergente compacta de aviso para visitantes no autenticados */}
           {modalAuthAbierto && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
               <button
                 type="button"
                 aria-label="Cerrar aviso"
                 onClick={() => setModalAuthAbierto(false)}
-                className="absolute inset-0 bg-black/45"
+                className="absolute inset-0 bg-black/50"
               />
 
               <div
@@ -489,20 +484,20 @@ export function SideMenu() {
                 aria-modal="true"
                 aria-labelledby="modal-auth-titulo"
                 aria-describedby="modal-auth-desc"
-                className="relative z-10 w-full max-w-[495px]"
+                className="relative z-10 w-full max-w-[390px]"
               >
                 <button
                   type="button"
                   aria-label="Cerrar ventana"
                   onClick={() => setModalAuthAbierto(false)}
-                  className="absolute -top-9 right-0 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full bg-white text-[#1E1E1E] shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:-right-2"
+                  className="absolute -top-8 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white text-[#1E1E1E] shadow-md transition-transform hover:scale-105"
                 >
                   <svg
                     aria-hidden
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2.6"
+                    strokeWidth="2.5"
                     className="h-4 w-4"
                   >
                     <path
@@ -513,17 +508,17 @@ export function SideMenu() {
                   </svg>
                 </button>
 
-                <div className="rounded-[14px] bg-white px-7 py-9 text-center shadow-[0_14px_36px_rgba(0,0,0,0.4)] sm:px-10 sm:py-10">
+                <div className="rounded-2xl bg-white px-6 py-7 text-center shadow-2xl">
                   <h2
                     id="modal-auth-titulo"
-                    className="mx-auto max-w-[410px] text-[22px] font-bold leading-[1.28] text-[#EA332F] sm:text-[25px]"
+                    className="mx-auto max-w-[330px] text-lg font-bold leading-snug text-[#EA332F] sm:text-xl"
                   >
                     Para continuar, necesitás iniciar sesión o crear una cuenta.
                   </h2>
 
                   <p
                     id="modal-auth-desc"
-                    className="mx-auto mt-5 max-w-[410px] text-[15px] font-normal leading-[1.42] text-[#2C2C2C] sm:text-[17px]"
+                    className="mx-auto mt-3 max-w-[330px] text-sm font-normal leading-relaxed text-[#2C2C2C]"
                   >
                     ¡Con tu usuario vas a poder comprar, guardar favoritos y
                     armar tu carrito sin límites!
@@ -532,7 +527,7 @@ export function SideMenu() {
                   <Link
                     href={loginHref}
                     onClick={cerrarMenuCompleto}
-                    className="mx-auto mt-7 inline-flex h-[52px] w-[206px] items-center justify-center rounded-[10px] bg-[#2C2C2C] text-[21px] font-normal text-white transition-opacity hover:opacity-90"
+                    className="mx-auto mt-5 inline-flex h-[42px] w-[170px] items-center justify-center rounded-lg bg-[#2C2C2C] text-base font-medium text-white transition-opacity hover:opacity-90"
                   >
                     Ingresar
                   </Link>

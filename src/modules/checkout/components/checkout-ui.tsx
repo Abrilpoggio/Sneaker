@@ -116,8 +116,12 @@ export function BotonPagar({
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <BotonConEstado
-        className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-60"
-        pendienteTexto={modo === "REAL" ? "Redirigiendo..." : "Confirmando pedido..."}
+        className={
+          modo === "REAL"
+            ? "inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD] disabled:cursor-not-allowed disabled:opacity-60"
+            : "rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-60"
+        }
+        pendienteTexto={modo === "REAL" ? "Redirigiendo a Mercado Pago..." : "Confirmando pedido..."}
       >
         {modo === "REAL" ? "Pagar con Mercado Pago" : "Pagar (simulado)"}
       </BotonConEstado>

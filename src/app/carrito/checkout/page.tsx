@@ -235,15 +235,29 @@ export default async function CheckoutPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-start gap-4">
-        <BotonPagar accion={accionPagar} modo={modoPago} />
-        {modoPago === "SIMULADO" && <BotonPagoRechazado accion={accionPagarRechazado} />}
+      <div className="flex flex-wrap items-center gap-4">
+        {modoPago === "REAL" ? (
+          <BotonPagar accion={accionPagar} modo={modoPago} />
+        ) : (
+          <>
+            <Link
+              href="/carrito/checkout/mercadopago"
+              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD]"
+            >
+              <span>Pagar con Mercado Pago</span>
+              <span className="rounded bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                Checkout Pro
+              </span>
+            </Link>
+            <BotonPagoRechazado accion={accionPagarRechazado} />
+          </>
+        )}
       </div>
 
-      <p className="text-sm text-[#9E9E9E]">
+      <p className="text-sm text-[#6B6B6B]">
         {modoPago === "REAL"
           ? "Serás redirigido a Mercado Pago para completar el pago. Tu pedido queda confirmado cuando el pago se aprueba."
-          : "Modo simulado (sin credenciales de Mercado Pago): el pago recorre el mismo camino de confirmación. Definí MERCADO_PAGO_ACCESS_TOKEN para activar el pago real."}
+          : "Al presionar «Pagar con Mercado Pago» serás redirigido a la pasarela Checkout Pro para elegir tu medio de pago (tarjeta en cuotas, dinero en cuenta o QR) y recibir tu comprobante por correo."}
       </p>
     </div>
   );

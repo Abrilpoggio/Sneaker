@@ -193,7 +193,7 @@ export function ImagenProductoConColor({
     (sku && colorActivo && IMAGENES_POR_SKU_COLOR[sku]?.[colorActivo]) || imagenBase;
 
   return (
-    <div className="relative h-[420px] w-full overflow-hidden rounded-[6px] bg-[#2C2C2C] sm:h-[460px]">
+    <div className="relative h-[420px] w-full overflow-hidden rounded-[11px] bg-[#333333] sm:h-[460px]">
       {srcActual ? (
         <Image
           key={srcActual}
@@ -201,7 +201,7 @@ export function ImagenProductoConColor({
           alt={alt}
           fill
           sizes="(max-width: 1024px) 100vw, 593px"
-          className={`object-cover transition-opacity duration-200 ${sinStock ? "grayscale" : ""}`}
+          className={`object-cover object-center transition-opacity duration-200 ${sinStock ? "grayscale" : ""}`}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center p-10 text-center">

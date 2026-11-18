@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireCliente } from "@/lib/permissions";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
+import { enviarCorreoActualizacionEstado } from "@/modules/emails/services/correo";
 import {
   actualizarEstadoPedidoSchema,
   repetirCompraSchema,
@@ -48,6 +49,19 @@ export async function actualizarEstadoPedidoAction(
       adminUsuarioId: sesion.user.id,
     });
 
+    let avisoCorreo = "";
+    try {
+      const notif = await enviarCorreoActualizacionEstado(actualizado.numeroOrden);
+      if (notif) {
+        avisoCorreo = ` Correo de seguimiento enviado a ${notif.para}.`;
+      }
+    } catch (errCorreo) {
+      console.error(
+        `[correo] No se pudo enviar la notificación de seguimiento de ${actualizado.numeroOrden}:`,
+        errCorreo instanceof Error ? errCorreo.message : errCorreo,
+      );
+    }
+
     revalidatePath("/admin");
     revalidatePath("/admin/pedidos");
     revalidatePath(`/pedido/${actualizado.numeroOrden}`);
@@ -56,7 +70,7 @@ export async function actualizarEstadoPedidoAction(
     const info = ETIQUETA_ESTADO_PEDIDO[actualizado.estado];
     return {
       status: "success",
-      message: `Estado de ${actualizado.numeroOrden} actualizado a "${info.nombre}".`,
+      message: `Estado de ${actualizado.numeroOrden} actualizado a "${info.nombre}".${avisoCorreo}`,
     };
   } catch (error) {
     if (error instanceof ErrorNegocioPedido) {

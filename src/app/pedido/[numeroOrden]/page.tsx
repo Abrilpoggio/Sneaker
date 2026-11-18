@@ -2,17 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { mercadoPagoHabilitado } from "@/lib/env";
 import { requireCliente } from "@/lib/permissions";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
 import { obtenerPedidoConfirmado } from "@/modules/checkout/services/checkout";
+import { procesarWebhookPago } from "@/modules/checkout/services/pagos";
+import {
+  construirCorreoActualizacionEstado,
+  obtenerPedidoParaCorreo,
+} from "@/modules/emails/services/correo";
 import { formatoPrecio } from "@/modules/catalogo/productos";
 import {
   BarraProgresoPedido,
   BotonRepetirCompra,
+  PanelComprobanteYCorreoPedido,
 } from "@/modules/pedidos/components/pedidos-ui";
 
 type Props = {
   params: Promise<{ numeroOrden: string }>;
+  searchParams: Promise<{ payment_id?: string; collection_id?: string }>;
 };
 
 export const metadata: Metadata = { title: "Pedido · Sneaker" };
@@ -20,17 +28,17 @@ export const metadata: Metadata = { title: "Pedido · Sneaker" };
 const ETIQUETAS_ESTADO: Record<string, { titulo: string; detalle: string; clase: string }> = {
   CONFIRMADO: {
     titulo: "¡Pedido confirmado!",
-    detalle: "Tu pago fue aprobado. Ya estamos preparando tu envío: te avisaremos por correo.",
+    detalle: "Tu pago fue aprobado. Ya estamos preparando tu envío: te enviamos el comprobante por correo.",
     clase: "border-green-700 bg-[#F0FFF4] text-green-700",
   },
   PREPARANDO: {
     titulo: "Preparando tu pedido",
-    detalle: "Nuestro depósito ya está armando y embalando tu orden para despacharla.",
+    detalle: "Nuestro depósito ya está armando y embalando tu orden para despacharla. Te enviamos un correo con esta actualización.",
     clase: "border-blue-700 bg-blue-50 text-blue-800",
   },
   EN_CAMINO: {
     titulo: "¡Tu pedido está en camino!",
-    detalle: "El paquete ya salió hacia la dirección de entrega indicada.",
+    detalle: "El paquete ya salió hacia la dirección de entrega indicada. Te enviamos un correo con el aviso de despacho.",
     clase: "border-indigo-700 bg-indigo-50 text-indigo-800",
   },
   RECIBIDO: {
@@ -52,7 +60,7 @@ const ETIQUETAS_ESTADO: Record<string, { titulo: string; detalle: string; clase:
   },
   CANCELADO: {
     titulo: "Pedido cancelado",
-    detalle: "El pedido fue cancelado. Si tenés alguna duda, escribinos.",
+    detalle: "El pedido fue cancelado y te enviamos la constancia por correo. Si tenés alguna duda, escribinos.",
     clase: "border-[#9E9E9E] bg-[#F5F5F5] text-[#4E4E4E]",
   },
 };
@@ -65,15 +73,37 @@ const ETIQUETAS_ESTADO: Record<string, { titulo: string; detalle: string; clase:
  * propiedad en el servicio). El estado RECHAZADO conserva el carrito:
  * se reingresa al checkout para reintentar el pago.
  */
-export default async function PedidoPage({ params }: Props) {
-  const { numeroOrden } = await params;
+export default async function PedidoPage({ params, searchParams }: Props) {
+  const [{ numeroOrden }, query] = await Promise.all([params, searchParams]);
   const sesion = await requireCliente();
   const usuarioId = await resolverComprador(sesion.user.id, sesion.user.email);
-  const pedido = await obtenerPedidoConfirmado(usuarioId, numeroOrden);
+
+  // Si el comprador vuelve desde Mercado Pago real con payment_id/collection_id,
+  // verificamos el pago contra la API de MP de inmediato (idempotente) sin esperar al webhook.
+  const pagoIdRetorno = query.payment_id ?? query.collection_id;
+  if (pagoIdRetorno && pagoIdRetorno !== "null" && mercadoPagoHabilitado()) {
+    try {
+      await procesarWebhookPago(pagoIdRetorno);
+    } catch (error) {
+      console.error(
+        `[mercadopago] No se pudo verificar el retorno del pago ${pagoIdRetorno}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  const [pedido, pedidoCorreo] = await Promise.all([
+    obtenerPedidoConfirmado(usuarioId, numeroOrden),
+    obtenerPedidoParaCorreo(numeroOrden),
+  ]);
 
   if (!pedido) {
     notFound();
   }
+
+  const infoCorreo = pedidoCorreo ? construirCorreoActualizacionEstado(pedidoCorreo) : null;
+  const correoCliente =
+    pedidoCorreo?.cliente.usuario.correo ?? sesion.user.email ?? "cliente@sneaker.test";
 
   const etiqueta = ETIQUETAS_ESTADO[pedido.estado] ?? {
     titulo: `Pedido ${pedido.estado.toLowerCase()}`,
@@ -107,15 +137,24 @@ export default async function PedidoPage({ params }: Props) {
         <p className="mt-1 text-base font-medium leading-[16px]">{etiqueta.detalle}</p>
         {pedido.estado === "RECHAZADO" && (
           <Link
-            href="/carrito/checkout"
+            href={mercadoPagoHabilitado() ? "/carrito/checkout" : "/carrito/checkout/mercadopago"}
             className="mt-2 inline-block text-base font-semibold text-[#CF1A1F] underline"
           >
-            Reintentar el pago
+            Reintentar el pago en Mercado Pago
           </Link>
         )}
       </div>
 
       <BarraProgresoPedido estado={pedido.estado} />
+
+      {infoCorreo && (
+        <PanelComprobanteYCorreoPedido
+          correoDestinatario={correoCliente}
+          asuntoCorreo={infoCorreo.asunto}
+          htmlCorreo={infoCorreo.html}
+          estado={pedido.estado}
+        />
+      )}
 
       <ul className="flex flex-col gap-3">
         {pedido.items.map((item) => (

@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -129,14 +129,21 @@ export async function accionPagar(
 
   try {
     const usuarioId = await resolverComprador(sesion.user.id, sesion.user.email);
+    const cuponGuardado = await leerCuponGuardado();
     if (mercadoPagoHabilitado()) {
-      // URL publica de la tienda: en dev apunta a localhost; para
-      // webhooks reales hace falta un tunel (o AUTH_URL con dominio).
-      const urlBase = process.env.AUTH_URL ?? "http://localhost:3000";
+      const hdrs = await headers();
+      const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+      const proto = hdrs.get("x-forwarded-proto") ?? (host?.includes("localhost") ? "http" : "https");
+      const urlBase =
+        (host ? `${proto}://${host}` : null) ??
+        process.env.AUTH_URL ??
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
       const pago = await iniciarPagoMercadoPago(
         usuarioId,
         sesion.user.email ?? "",
-        urlBase,
+        urlBase.replace(/\/$/, ""),
+        cuponGuardado,
       );
       if (!pago.urlPago) {
         return {
@@ -145,13 +152,11 @@ export async function accionPagar(
           marcaTiempo: Date.now(),
         };
       }
+      await olvidarCupon();
       destino = pago.urlPago;
     } else {
       // Modo simulado: fase 1 + fase 2 en linea, sin API externa.
-      const numeroOrden = await pagarSimuladoAprobado(
-        usuarioId,
-        await leerCuponGuardado(),
-      );
+      const numeroOrden = await pagarSimuladoAprobado(usuarioId, cuponGuardado);
       // El cupon queda consumido en el pedido: la proxima compra
       // arranca sin cupon aplicado.
       await olvidarCupon();

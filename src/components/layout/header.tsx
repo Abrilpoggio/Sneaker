@@ -142,7 +142,7 @@ export function Header() {
           </form>
 
           {/* Visitante: "INGRESAR" + Hamburguesa | Autenticado: Carrito + Perfil + Favoritos + Hamburguesa */}
-          <div className="ml-auto flex shrink-0 items-center gap-5 sm:gap-7">
+          <div className="ml-auto flex shrink-0 items-center gap-3.5 sm:gap-4">
             <SessionButtons />
             <SideMenu />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { EstadoPedido } from "@/generated/prisma/enums";
 import {
@@ -167,3 +167,92 @@ export function BotonRepetirCompra({ pedidoId }: { pedidoId: string }) {
     </div>
   );
 }
+
+/**
+ * RF-28 / RF-32: muestra el aviso de correo enviado en la etapa actual de
+ * seguimiento, permite previsualizar el correo con comprobante de pago e
+ * imprimir/guardar el comprobante en PDF.
+ */
+export function PanelComprobanteYCorreoPedido({
+  correoDestinatario,
+  asuntoCorreo,
+  htmlCorreo,
+  estado,
+}: {
+  correoDestinatario: string;
+  asuntoCorreo: string;
+  htmlCorreo: string;
+  estado: EstadoPedido;
+}) {
+  const [verCorreo, setVerCorreo] = useState(false);
+
+  const imprimirComprobante = () => {
+    const ventana = window.open("", "_blank", "width=760,height=840");
+    if (!ventana) {
+      window.print();
+      return;
+    }
+    ventana.document.write(htmlCorreo);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => {
+      ventana.print();
+    }, 250);
+  };
+
+  return (
+    <div className="rounded-lg border border-[#D9D9D9] bg-white p-4 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
+            ✉
+          </span>
+          <div>
+            <p className="text-sm font-bold text-[#2C2C2C]">
+              Notificación por correo y comprobante de pago ({ETIQUETA_ESTADO_PEDIDO[estado]?.nombre ?? estado})
+            </p>
+            <p className="text-xs text-[#6B6B6B]">
+              Enviado a <strong className="text-[#2C2C2C]">{correoDestinatario}</strong> · Asunto:{" "}
+              <span className="italic">{asuntoCorreo}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setVerCorreo((prev) => !prev)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[#D9D9D9] bg-[#FAFAFA] px-3 text-xs font-semibold text-[#2C2C2C] transition-colors hover:bg-[#EFEFEF]"
+          >
+            {verCorreo ? "Ocultar correo enviado" : "Ver correo enviado"}
+          </button>
+          <button
+            type="button"
+            onClick={imprimirComprobante}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#2C2C2C] px-3 text-xs font-semibold text-white transition-colors hover:bg-black"
+          >
+            Imprimir / Descargar comprobante
+          </button>
+        </div>
+      </div>
+
+      {verCorreo && (
+        <div className="mt-4 overflow-hidden rounded-lg border border-[#E5E5E5] bg-[#F9FAFB] p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E5E5] pb-2 text-xs text-[#6B6B6B]">
+            <span>
+              <strong>Para:</strong> {correoDestinatario}
+            </span>
+            <span>
+              <strong>Asunto:</strong> {asuntoCorreo}
+            </span>
+          </div>
+          <div
+            className="rounded bg-white p-2 text-sm shadow-2xs"
+            dangerouslySetInnerHTML={{ __html: htmlCorreo }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
