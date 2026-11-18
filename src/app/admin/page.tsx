@@ -39,6 +39,10 @@ export default async function PaginaAdmin() {
     },
   ];
 
+  const tarjetasExtra = [
+    { etiqueta: "Newsletter (RF-44)", detalle: "Enviar novedades a suscriptos", destino: "/admin/newsletter" },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       <header>
@@ -80,6 +84,27 @@ export default async function PaginaAdmin() {
         <Link href="/admin/etiquetas" className="mt-3 inline-block text-sm font-semibold text-[#CF1A1F] underline">
           Gestionar etiquetas de uso
         </Link>
+      </section>
+
+      <section aria-labelledby="titulo-marketing" className="rounded-card border border-borde p-4">
+        <h2 id="titulo-marketing" className="text-sm font-semibold">
+          Marketing
+        </h2>
+        <p className="mt-2 text-sm text-texto-tenue">
+          El ABM de cupones y promociones (RF-41/42) esta pendiente sin
+          responsable; los datos de prueba se cargan con el seed.
+        </p>
+        <div className="mt-3 flex flex-col gap-2">
+          {tarjetasExtra.map((tarjeta) => (
+            <Link
+              key={tarjeta.etiqueta}
+              href={tarjeta.destino}
+              className="text-sm font-semibold text-[#CF1A1F] underline"
+            >
+              {tarjeta.etiqueta} — {tarjeta.detalle}
+            </Link>
+          ))}
+        </div>
       </section>
     </div>
   );
