@@ -26,15 +26,15 @@ export function ProductoCatalogoCard({ producto }: { producto: ProductoCatalogo 
       href={`/producto/${sku}`}
       className={`group flex w-full max-w-[280px] shrink-0 flex-col ${sinStock ? "opacity-60" : ""}`}
     >
-      {/* Imagen 280 x 260, fondo #2C2C2C */}
-      <div className="relative h-[260px] w-full overflow-hidden rounded-t-[11px] bg-[#2C2C2C]">
+      {/* Imagen 280 x 260, cubre toda la mitad superior con bordes redondeados */}
+      <div className="relative h-[260px] w-full overflow-hidden rounded-t-[11px] bg-[#333333]">
         {imagen ? (
           <Image
             src={imagen}
             alt={`${nombre} ${marca}`}
             fill
             sizes="(max-width: 640px) 100vw, 280px"
-            className={`object-contain p-4 transition-transform duration-300 group-hover:scale-105 ${
+            className={`object-cover object-center transition-transform duration-300 group-hover:scale-105 ${
               sinStock ? "grayscale" : ""
             }`}
           />

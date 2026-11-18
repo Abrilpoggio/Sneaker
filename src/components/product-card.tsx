@@ -28,14 +28,14 @@ export function ProductoCard({ producto }: { producto: Producto }) {
       href={`/producto/${slug}`}
       className="group flex w-full max-w-[280px] shrink-0 flex-col"
     >
-      {/* Imagen 280 x 260, fondo #2C2C2C */}
-      <div className="relative h-[260px] w-full overflow-hidden rounded-t-[11px] bg-[#2C2C2C]">
+      {/* Imagen 280 x 260, cubre toda la mitad superior con bordes redondeados */}
+      <div className="relative h-[260px] w-full overflow-hidden rounded-t-[11px] bg-[#333333]">
         <Image
           src={imagen}
           alt={`${nombre} ${marca}`}
           fill
           sizes="(max-width: 640px) 100vw, 280px"
-          className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+          className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 

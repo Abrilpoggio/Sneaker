@@ -28,7 +28,7 @@ export function SessionButtons() {
     return (
       <Link
         href={loginHref}
-        className="text-[18px] font-bold tracking-[0.03em] uppercase text-white transition-opacity hover:opacity-80 sm:text-[20px]"
+        className="text-[13px] font-semibold tracking-[0.05em] uppercase text-white/95 transition-opacity hover:opacity-80 sm:text-[14px]"
       >
         INGRESAR
       </Link>

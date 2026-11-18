@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { HeroCarousel } from "@/components/home/hero-carousel";
 import { ProductoCard } from "@/components/product-card";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
 import { listarCatalogo, type ProductoCatalogo } from "@/modules/catalogo/catalogo";
@@ -55,44 +56,8 @@ export default async function PaginaInicio() {
 
   return (
     <div data-full-bleed className="flex w-full flex-col">
-      {/* Banner principal oficial exportado de Figma */}
-      <section
-        aria-label="Banner principal"
-        className="relative h-[380px] w-full overflow-hidden bg-[#2C2C2C] sm:h-[420px]"
-      >
-        <Image
-          src="/figma/banner-home-1.png"
-          alt="Calzado deportivo y urbano Sneaker"
-          fill
-          sizes="100vw"
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2C2C2C]/65 via-[#2C2C2C]/20 to-transparent" />
-
-        <div className="relative mx-auto flex h-full w-full max-w-[1287px] items-center px-6 sm:px-8">
-          <div className="flex max-w-[540px] flex-col gap-3">
-            <p className="text-3xl font-bold leading-tight text-white drop-shadow sm:text-4xl">
-              Calzado deportivo y urbano
-            </p>
-            <p className="text-base font-light text-white/90 drop-shadow sm:text-lg">
-              Encontrá tus próximos pares con reserva inmediata y envíos a todo el país.
-            </p>
-          </div>
-        </div>
-
-        {/* Boton newsletter superpuesto abajo a la derecha como en el mockup de Figma */}
-        <div className="absolute bottom-5 right-6 z-10 sm:right-10">
-          <Link
-            href="/newsletter"
-            className="flex h-[44px] items-center justify-center gap-2.5 rounded-lg bg-white px-5 py-2 shadow-md transition-opacity hover:opacity-90"
-          >
-            <span className="text-sm font-semibold leading-[16px] text-black sm:text-base">
-              ★ Suscríbete a NewsLetter
-            </span>
-          </Link>
-        </div>
-      </section>
+      {/* Carrusel deslizable automático con los 3 banners exportados de Figma */}
+      <HeroCarousel />
 
       {/* Destacados a ancho completo, fondo #2C2C2C pegado al banner como en el mockup */}
       <section aria-label="Productos destacados" className="w-full bg-[#2C2C2C] py-12">
