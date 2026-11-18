@@ -6,6 +6,10 @@ import { requireCliente } from "@/lib/permissions";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
 import { obtenerPedidoConfirmado } from "@/modules/checkout/services/checkout";
 import { formatoPrecio } from "@/modules/catalogo/productos";
+import {
+  BarraProgresoPedido,
+  BotonRepetirCompra,
+} from "@/modules/pedidos/components/pedidos-ui";
 
 type Props = {
   params: Promise<{ numeroOrden: string }>;
@@ -18,6 +22,21 @@ const ETIQUETAS_ESTADO: Record<string, { titulo: string; detalle: string; clase:
     titulo: "¡Pedido confirmado!",
     detalle: "Tu pago fue aprobado. Ya estamos preparando tu envío: te avisaremos por correo.",
     clase: "border-green-700 bg-[#F0FFF4] text-green-700",
+  },
+  PREPARANDO: {
+    titulo: "Preparando tu pedido",
+    detalle: "Nuestro depósito ya está armando y embalando tu orden para despacharla.",
+    clase: "border-blue-700 bg-blue-50 text-blue-800",
+  },
+  EN_CAMINO: {
+    titulo: "¡Tu pedido está en camino!",
+    detalle: "El paquete ya salió hacia la dirección de entrega indicada.",
+    clase: "border-indigo-700 bg-indigo-50 text-indigo-800",
+  },
+  RECIBIDO: {
+    titulo: "Pedido recibido",
+    detalle: "El envío fue entregado en el domicilio de destino. ¡Gracias por elegir Sneaker!",
+    clase: "border-green-800 bg-green-100 text-green-900",
   },
   PENDIENTE: {
     titulo: "Pago en curso",
@@ -95,6 +114,8 @@ export default async function PedidoPage({ params }: Props) {
           </Link>
         )}
       </div>
+
+      <BarraProgresoPedido estado={pedido.estado} />
 
       <ul className="flex flex-col gap-3">
         {pedido.items.map((item) => (
@@ -179,9 +200,17 @@ export default async function PedidoPage({ params }: Props) {
         )}
       </div>
 
-      <Link href="/catalogo" className="self-start text-base font-semibold text-[#CF1A1F] underline">
-        Seguir comprando
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/cuenta/pedidos" className="text-base font-semibold text-[#2C2C2C] underline">
+            ← Mis pedidos
+          </Link>
+          <Link href="/catalogo" className="text-base font-semibold text-[#CF1A1F] underline">
+            Seguir comprando
+          </Link>
+        </div>
+        <BotonRepetirCompra pedidoId={pedido.id} />
+      </div>
     </div>
   );
 }

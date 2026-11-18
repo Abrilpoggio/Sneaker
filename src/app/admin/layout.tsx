@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/permissions";
 
 const enlaces = [
   { href: "/admin", label: "Panel de Control" },
+  { href: "/admin/pedidos", label: "Pedidos y Envios" },
   { href: "/admin/productos", label: "Gestion de Productos" },
   { href: "/admin/variantes", label: "Variantes y Stock" },
   { href: "/admin/etiquetas", label: "Etiquetas de Uso" },
