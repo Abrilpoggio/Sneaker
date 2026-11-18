@@ -21,7 +21,12 @@ export default async function PaginaAdmin() {
 
   // Verificacion de humo del Sprint 1: si la base esta conectada y las
   // migraciones aplicadas, estos conteos son coherentes.
+<<<<<<< HEAD
   const [productos, variantes, usuarios, movimientos, kits, extracciones] = await Promise.all([
+=======
+  const [pedidos, productos, variantes, usuarios, movimientos] = await Promise.all([
+    prisma.pedido.count(),
+>>>>>>> origin/main
     prisma.producto.count(),
     prisma.varianteProducto.count(),
     prisma.usuario.count(),
@@ -31,6 +36,7 @@ export default async function PaginaAdmin() {
   ]);
 
   const tarjetas = [
+    { etiqueta: "Pedidos", valor: pedidos, destino: "/admin/pedidos" },
     { etiqueta: "Productos", valor: productos, destino: "/admin/productos" },
     { etiqueta: "Variantes", valor: variantes, destino: "/admin/variantes" },
     { etiqueta: "Kits", valor: kits, destino: "/admin/kits" },

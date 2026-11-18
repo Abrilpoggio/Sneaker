@@ -26,20 +26,20 @@ const DESTACADOS = [
   {
     titulo: "HOMBRE",
     href: "/catalogo?categoria=hombres",
-    src: PRODUCTOS[0].imagen,
-    alt: PRODUCTOS[0].nombre,
+    src: "/figma/destacado-hombre.png",
+    alt: "Colección Hombre",
   },
   {
     titulo: "MUJER",
     href: "/catalogo?categoria=mujeres",
-    src: PRODUCTOS[1].imagen,
-    alt: PRODUCTOS[1].nombre,
+    src: "/figma/destacado-mujer.png",
+    alt: "Colección Mujer",
   },
   {
     titulo: "NIÑOS",
     href: "/catalogo?categoria=niños",
-    src: PRODUCTOS[0].imagen,
-    alt: PRODUCTOS[0].nombre,
+    src: "/figma/destacado-ninos.png",
+    alt: "Colección Niños",
   },
 ];
 
@@ -53,31 +53,27 @@ export default async function PaginaInicio() {
 
   return (
     <div data-full-bleed className="flex w-full flex-col">
-      {/* Banner principal a ancho 100% sin desborde de scrollbar ni margen blanco a la derecha */}
+      {/* Banner principal oficial exportado de Figma */}
       <section
         aria-label="Banner principal"
-        className="relative h-[380px] w-full overflow-hidden bg-gradient-to-r from-[#1F1F1F] via-[#2C2C2C] to-[#7C0300] sm:h-[410px]"
+        className="relative h-[380px] w-full overflow-hidden bg-[#2C2C2C] sm:h-[420px]"
       >
-        {/* Imagenes decorativas del banner contenidas sin pixelarse ni dejar franja blanca */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex w-full max-w-[760px] items-center justify-end pr-6 opacity-90 sm:pr-16">
-          <div className="relative h-[320px] w-[420px] sm:h-[370px] sm:w-[520px]">
-            <Image
-              src={PRODUCTOS[0].imagen}
-              alt={PRODUCTOS[0].nombre}
-              fill
-              sizes="(max-width: 768px) 80vw, 520px"
-              className="object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)]"
-              priority
-            />
-          </div>
-        </div>
+        <Image
+          src="/figma/banner-home-1.png"
+          alt="Calzado deportivo y urbano Sneaker"
+          fill
+          sizes="100vw"
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#2C2C2C]/65 via-[#2C2C2C]/20 to-transparent" />
 
         <div className="relative mx-auto flex h-full w-full max-w-[1287px] items-center px-6 sm:px-8">
           <div className="flex max-w-[540px] flex-col gap-3">
             <p className="text-3xl font-bold leading-tight text-white drop-shadow sm:text-4xl">
               Calzado deportivo y urbano
             </p>
-            <p className="text-base font-light text-white/85 sm:text-lg">
+            <p className="text-base font-light text-white/90 drop-shadow sm:text-lg">
               Encontrá tus próximos pares con reserva inmediata y envíos a todo el país.
             </p>
           </div>
@@ -104,22 +100,18 @@ export default async function PaginaInicio() {
               <Link
                 key={s.titulo}
                 href={s.href}
-                className="group relative flex h-[380px] w-full max-w-[296px] flex-col items-center justify-between overflow-hidden rounded-lg bg-gradient-to-b from-[#3A3A3A] to-[#1E1E1E] p-6 shadow-lg transition-transform hover:-translate-y-1"
+                className="group relative h-[420px] w-full max-w-[296px] overflow-hidden rounded-lg bg-[#444444] shadow-lg transition-transform hover:-translate-y-1"
               >
-                <span className="z-10 text-lg font-extrabold tracking-wider text-white">
+                <Image
+                  src={s.src}
+                  alt={s.alt}
+                  fill
+                  sizes="296px"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/45" />
+                <span className="absolute left-0 right-0 top-5 text-center text-xl font-extrabold tracking-wider text-white drop-shadow">
                   {s.titulo}
-                </span>
-                <div className="relative my-auto h-[240px] w-full">
-                  <Image
-                    src={s.src}
-                    alt={s.alt}
-                    fill
-                    sizes="280px"
-                    className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <span className="text-sm font-medium text-white/80 underline-offset-4 group-hover:text-white group-hover:underline">
-                  Ver colección
                 </span>
               </Link>
             ))}

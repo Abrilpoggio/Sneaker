@@ -69,6 +69,14 @@ export default async function PaginaCuenta() {
         ? `${cuenta.cliente.conteos.direcciones}/${MAXIMO_DIRECCIONES_POR_CLIENTE}`
         : null,
     },
+    {
+      href: "/cuenta/pedidos",
+      titulo: "Mis Pedidos",
+      descripcion: "Historial de compras y seguimiento de envíos.",
+      insignia: cuenta.cliente
+        ? `${cuenta.cliente.conteos.pedidos}`
+        : null,
+    },
   ];
 
   return (

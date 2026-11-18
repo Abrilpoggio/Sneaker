@@ -77,15 +77,11 @@ export function ProductoCatalogoCard({ producto }: { producto: ProductoCatalogo 
           >
             {formatoPrecio(precio)}
           </p>
-          <p
-            className={`text-[12px] font-normal leading-[16px] ${
-              sinStock ? "text-[#9E9E9E]" : "text-[#FF8F8F]"
-            }`}
-          >
-            {producto.variantesTotales > 0
-              ? `${producto.variantesDisponibles}/${producto.variantesTotales} variantes`
-              : "Kit"}
-          </p>
+          {ultimasUnidades && (
+            <p className="text-[12px] font-semibold leading-[16px] text-[#FF8F8F]">
+              ¡Últimas {producto.stockTotal} unidades!
+            </p>
+          )}
         </div>
       </div>
     </Link>
