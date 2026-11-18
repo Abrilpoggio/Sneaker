@@ -66,17 +66,24 @@ export default async function CatalogoPage({
 
   return (
     <div data-full-bleed className="flex w-full flex-col">
-      {/* BANNER a ancho completo pegado al header y texto centrado como en el mockup de Figma */}
+      {/* BANNER a ancho completo con foto oficial de Figma */}
       <section
         aria-label="Banner del catalogo"
         className="relative h-[250px] w-full overflow-hidden bg-[#2C2C2C] sm:h-[289px]"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-[#CF1A1F] via-[#7C0300] to-[#2C2C2C]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/figma/banner-catalogo.png"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#CF1A1F]/70 via-[#2C2C2C]/65 to-[#1E1E1E]/85" />
         <div className="relative mx-auto flex h-full w-full max-w-[1287px] flex-col items-center justify-center gap-3 px-6 text-center sm:px-10">
           <h1 className="text-3xl font-extrabold tracking-wide text-white drop-shadow sm:text-[52px] sm:leading-[62px]">
             CATÁLOGO COMPLETO
           </h1>
-          <p className="text-lg font-medium italic tracking-wide text-white/95 sm:text-2xl">
+          <p className="text-lg font-medium italic tracking-wide text-white/95 drop-shadow sm:text-2xl">
             TODOS NUESTROS PRODUCTOS
           </p>
         </div>
