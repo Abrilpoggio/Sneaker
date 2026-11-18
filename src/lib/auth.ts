@@ -92,6 +92,11 @@ if (googleOAuthHabilitado()) {
 }
 
 export const authConfig = {
+  secret:
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "sneaker-secret-produccion-uader-2026-taller",
+
   session: {
     strategy: "jwt",
     maxAge: DURACION_REFRESH_TOKEN_SEG,

@@ -10,13 +10,10 @@ import { PrismaClient } from "@/generated/prisma/client";
  * limite de conexiones de Postgres.
  */
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error(
-      "Falta DATABASE_URL. Copia .env.example a .env y completa los valores.",
-    );
-  }
+  const connectionString =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    "postgresql://placeholder:placeholder@localhost:5432/placeholder";
 
   // Prisma 7 exige un driver adapter explicito en lugar del motor Rust.
   const adapter = new PrismaPg({ connectionString });

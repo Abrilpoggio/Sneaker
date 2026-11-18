@@ -228,7 +228,11 @@ export default async function AdminPedidosPage({
                               {item.cantidad}x {item.nombreProductoSnapshot}
                             </span>
                             <span className="ml-1.5 text-xs text-[#6B6B6B]">
-                              ({item.varianteProducto.talle} · {item.varianteProducto.color})
+                              (
+                              {item.varianteProducto
+                                ? `${item.varianteProducto.talle} · ${item.varianteProducto.color}`
+                                : "Kit"}
+                              )
                             </span>
                           </div>
                           <span className="font-medium tabular-nums text-[#2C2C2C]">

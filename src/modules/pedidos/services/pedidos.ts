@@ -1,6 +1,12 @@
 import { EstadoPedido, TipoMovimiento } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { calcularCostoEnvio } from "@/modules/envios/tarifas";
+import {
+  ETIQUETA_ESTADO_PEDIDO,
+  TRANSICIONES_PERMITIDAS,
+} from "../schemas";
+
+export { ETIQUETA_ESTADO_PEDIDO, TRANSICIONES_PERMITIDAS };
 
 /**
  * Servicio de gestion de pedidos, estados de envio e historial (Sprint 4 - Abril Poggio).
@@ -24,71 +30,6 @@ export class ErrorNegocioPedido extends Error {
   }
 }
 
-export const TRANSICIONES_PERMITIDAS: Record<EstadoPedido, readonly EstadoPedido[]> = {
-  [EstadoPedido.CONFIRMADO]: [
-    EstadoPedido.PREPARANDO,
-    EstadoPedido.EN_CAMINO,
-    EstadoPedido.RECIBIDO,
-    EstadoPedido.CANCELADO,
-  ],
-  [EstadoPedido.PREPARANDO]: [
-    EstadoPedido.EN_CAMINO,
-    EstadoPedido.RECIBIDO,
-    EstadoPedido.CANCELADO,
-  ],
-  [EstadoPedido.EN_CAMINO]: [
-    EstadoPedido.RECIBIDO,
-    EstadoPedido.CANCELADO,
-  ],
-  [EstadoPedido.RECIBIDO]: [],
-  [EstadoPedido.PENDIENTE]: [
-    EstadoPedido.CONFIRMADO,
-    EstadoPedido.CANCELADO,
-  ],
-  [EstadoPedido.CANCELADO]: [],
-  [EstadoPedido.RECHAZADO]: [],
-};
-
-export const ETIQUETA_ESTADO_PEDIDO: Record<
-  EstadoPedido,
-  { nombre: string; descripcion: string; badgeClase: string }
-> = {
-  CONFIRMADO: {
-    nombre: "Confirmado",
-    descripcion: "Pago acreditado. Pedido listo para entrar en preparación.",
-    badgeClase: "border-emerald-700 bg-emerald-50 text-emerald-800",
-  },
-  PREPARANDO: {
-    nombre: "Preparando",
-    descripcion: "El depósito está armando y embalando el paquete.",
-    badgeClase: "border-blue-700 bg-blue-50 text-blue-800",
-  },
-  EN_CAMINO: {
-    nombre: "En camino",
-    descripcion: "El pedido ya fue despachado hacia el domicilio de entrega.",
-    badgeClase: "border-indigo-700 bg-indigo-50 text-indigo-800",
-  },
-  RECIBIDO: {
-    nombre: "Recibido",
-    descripcion: "Entregado en el domicilio de destino.",
-    badgeClase: "border-green-800 bg-green-100 text-green-900",
-  },
-  PENDIENTE: {
-    nombre: "Pendiente de pago",
-    descripcion: "Esperando acreditación de la pasarela de pago.",
-    badgeClase: "border-amber-600 bg-amber-50 text-amber-800",
-  },
-  CANCELADO: {
-    nombre: "Cancelado",
-    descripcion: "Pedido anulado y stock restaurado en inventario.",
-    badgeClase: "border-neutral-400 bg-neutral-100 text-neutral-700",
-  },
-  RECHAZADO: {
-    nombre: "Pago rechazado",
-    descripcion: "El cobro fue rechazado por el medio de pago.",
-    badgeClase: "border-[#CF1A1F] bg-[#FFCDD2] text-[#7C0300]",
-  },
-};
 
 export interface FiltrosPedidosAdmin {
   estado?: EstadoPedido | "TODOS";
@@ -183,6 +124,7 @@ export async function actualizarEstadoPedidoAdmin(input: {
         items: {
           select: {
             varianteProductoId: true,
+            componentesKit: true,
             cantidad: true,
           },
         },
@@ -211,37 +153,61 @@ export async function actualizarEstadoPedidoAdmin(input: {
       EstadoPedido.EN_CAMINO,
     ];
 
+    const expandirVariantesItem = (item: {
+      varianteProductoId: string | null;
+      componentesKit: unknown;
+      cantidad: number;
+    }): Array<{ varianteId: string; unidades: number }> => {
+      if (item.varianteProductoId) {
+        return [{ varianteId: item.varianteProductoId, unidades: item.cantidad }];
+      }
+      if (Array.isArray(item.componentesKit)) {
+        return item.componentesKit
+          .filter(
+            (c): c is { varianteId: string; cantidad: number } =>
+              typeof c === "object" &&
+              c !== null &&
+              typeof (c as { varianteId?: unknown }).varianteId === "string" &&
+              typeof (c as { cantidad?: unknown }).cantidad === "number",
+          )
+          .map((c) => ({ varianteId: c.varianteId, unidades: item.cantidad * c.cantidad }));
+      }
+      return [];
+    };
+
     // Si el pedido estaba PENDIENTE y el admin lo confirma manualmente, descontar stock
     if (
       pedido.estado === EstadoPedido.PENDIENTE &&
       input.nuevoEstado === EstadoPedido.CONFIRMADO
     ) {
       for (const item of pedido.items) {
-        const res = await tx.varianteProducto.updateMany({
-          where: { id: item.varianteProductoId, stockActual: { gte: item.cantidad } },
-          data: { stockActual: { decrement: item.cantidad } },
-        });
-        if (res.count === 0) {
-          throw new ErrorNegocioPedido(
-            "SIN_STOCK",
-            "No hay stock suficiente para confirmar este pedido pendiente.",
-          );
+        for (const mov of expandirVariantesItem(item)) {
+          const res = await tx.varianteProducto.updateMany({
+            where: { id: mov.varianteId, stockActual: { gte: mov.unidades } },
+            data: { stockActual: { decrement: mov.unidades } },
+          });
+          if (res.count === 0) {
+            throw new ErrorNegocioPedido(
+              "SIN_STOCK",
+              "No hay stock suficiente para confirmar este pedido pendiente.",
+            );
+          }
+          const varianteActualizada = await tx.varianteProducto.findUniqueOrThrow({
+            where: { id: mov.varianteId },
+            select: { stockActual: true },
+          });
+          await tx.movimientoStock.create({
+            data: {
+              tipo: TipoMovimiento.VENTA,
+              cantidad: mov.unidades,
+              justificacion: `Confirmación administrativa del pedido ${pedido.numeroOrden}`,
+              stockResultante: varianteActualizada.stockActual,
+              varianteProductoId: mov.varianteId,
+              responsableId: input.adminUsuarioId,
+              pedidoId: pedido.id,
+            },
+          });
         }
-        const varianteActualizada = await tx.varianteProducto.findUniqueOrThrow({
-          where: { id: item.varianteProductoId },
-          select: { stockActual: true },
-        });
-        await tx.movimientoStock.create({
-          data: {
-            tipo: TipoMovimiento.VENTA,
-            cantidad: item.cantidad,
-            justificacion: `Confirmación administrativa del pedido ${pedido.numeroOrden}`,
-            stockResultante: varianteActualizada.stockActual,
-            varianteProductoId: item.varianteProductoId,
-            responsableId: input.adminUsuarioId,
-            pedidoId: pedido.id,
-          },
-        });
       }
     }
 
@@ -251,23 +217,25 @@ export async function actualizarEstadoPedidoAdmin(input: {
       estadosConStockDescontado.includes(pedido.estado)
     ) {
       for (const item of pedido.items) {
-        const varianteActualizada = await tx.varianteProducto.update({
-          where: { id: item.varianteProductoId },
-          data: { stockActual: { increment: item.cantidad } },
-          select: { stockActual: true },
-        });
+        for (const mov of expandirVariantesItem(item)) {
+          const varianteActualizada = await tx.varianteProducto.update({
+            where: { id: mov.varianteId },
+            data: { stockActual: { increment: mov.unidades } },
+            select: { stockActual: true },
+          });
 
-        await tx.movimientoStock.create({
-          data: {
-            tipo: TipoMovimiento.INGRESO,
-            cantidad: item.cantidad,
-            justificacion: `Restauración de stock por cancelación del pedido ${pedido.numeroOrden} (RF-37)`,
-            stockResultante: varianteActualizada.stockActual,
-            varianteProductoId: item.varianteProductoId,
-            responsableId: input.adminUsuarioId,
-            pedidoId: pedido.id,
-          },
-        });
+          await tx.movimientoStock.create({
+            data: {
+              tipo: TipoMovimiento.INGRESO,
+              cantidad: mov.unidades,
+              justificacion: `Restauración de stock por cancelación del pedido ${pedido.numeroOrden} (RF-37)`,
+              stockResultante: varianteActualizada.stockActual,
+              varianteProductoId: mov.varianteId,
+              responsableId: input.adminUsuarioId,
+              pedidoId: pedido.id,
+            },
+          });
+        }
       }
     }
 
@@ -360,6 +328,10 @@ export async function repetirPedidoAnterior(clienteId: string, pedidoId: string)
 
     for (const item of pedido.items) {
       const variante = item.varianteProducto;
+      if (!variante) {
+        sinStock.push(item.nombreProductoSnapshot);
+        continue;
+      }
       if (variante.producto.estado !== "ACTIVO" || variante.stockActual <= 0) {
         sinStock.push(`${item.nombreProductoSnapshot} (${variante.talle} · ${variante.color})`);
         continue;

@@ -11,7 +11,7 @@ import {
 import {
   ETIQUETA_ESTADO_PEDIDO,
   TRANSICIONES_PERMITIDAS,
-} from "../services/pedidos";
+} from "../schemas";
 
 const ESTADO_INICIAL: PedidoFormState = { status: "idle" };
 

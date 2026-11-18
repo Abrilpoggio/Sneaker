@@ -122,7 +122,9 @@ export default async function CuentaPedidosPage() {
                           {item.cantidad}x {item.nombreProductoSnapshot}
                         </span>
                         <span className="ml-2 text-xs text-[#6B6B6B]">
-                          Talle {item.varianteProducto.talle} · {item.varianteProducto.color}
+                          {item.varianteProducto
+                            ? `Talle ${item.varianteProducto.talle} · ${item.varianteProducto.color}`
+                            : "Kit"}
                         </span>
                       </div>
                       <span className="font-medium tabular-nums text-[#2C2C2C]">

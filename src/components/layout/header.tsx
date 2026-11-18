@@ -31,6 +31,7 @@ const CATEGORIAS = [
   "Deportivas",
   "Medias",
   "Accesorios",
+  "Kits",
 ];
 const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
 const ENLACES_CUENTA = [
@@ -51,37 +52,35 @@ export function Header() {
   if (esRutaAuth) {
     return (
       <header className="sticky top-0 z-40 w-full bg-[#2C2C2C]">
-        <div className="flex h-[136px] w-full items-center justify-between px-6 sm:h-[156px] sm:px-[36px] xl:h-[183px]">
-          {/* Frame 81 (226:1101): Flecha izquierda contorneada (40x40) + VOLVER (20px/700 blanco) */}
+        <div className="flex h-[84px] w-full items-center justify-between px-6 sm:h-[96px] sm:px-[36px]">
           <Link
             href={volverHref}
-            className="flex items-center gap-[20px] text-white transition-opacity hover:opacity-80"
+            className="flex items-center gap-3 text-white transition-opacity hover:opacity-80"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/arrow-volver.svg"
               alt=""
               aria-hidden
-              className="h-[34px] w-[34px] shrink-0 sm:h-[40px] sm:w-[40px]"
+              className="h-[28px] w-[28px] shrink-0 sm:h-[32px] sm:w-[32px]"
             />
-            <span className="text-[18px] font-bold leading-[24px] uppercase text-white sm:text-[20px]">
+            <span className="text-[15px] font-bold leading-[20px] uppercase text-white sm:text-[17px]">
               VOLVER
             </span>
           </Link>
 
-          {/* Frame 80 (226:1087): Wordmark SNEAKER (206x29) a la izquierda + Logo circular (104x104) a la derecha */}
-          <Link href="/" className="flex items-center gap-[18px] sm:gap-[23px]">
+          <Link href="/" className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/sneaker-wordmark.svg"
               alt="SNEAKER"
-              className="h-[22px] w-auto sm:h-[29px] sm:w-[206px]"
+              className="h-[20px] w-auto sm:h-[24px]"
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/logo-circle.png"
               alt="Logo Sneaker"
-              className="h-[76px] w-[76px] shrink-0 rounded-full object-contain sm:h-[92px] sm:w-[92px] xl:h-[104px] xl:w-[104px]"
+              className="h-[56px] w-[56px] shrink-0 rounded-full object-contain sm:h-[68px] sm:w-[68px]"
             />
           </Link>
         </div>
@@ -90,43 +89,43 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full">
-      {/* header1 - 155 px, #2C2C2C, extremos pegados a los bordes y buscador central mas largo */}
+    <header className="sticky top-0 z-40 w-full shadow-sm">
+      {/* header1 - compacto y proporcionado al 100% de zoom */}
       <div className="w-full bg-[#2C2C2C]">
-        <div className="flex h-[135px] w-full items-center justify-between gap-6 px-5 sm:h-[155px] sm:px-10 lg:px-12">
-          <Link href="/" className="flex shrink-0 items-center gap-[20px] sm:gap-[23px]">
+        <div className="flex h-[76px] w-full items-center justify-between gap-6 px-5 sm:h-[88px] sm:px-8 lg:px-12">
+          <Link href="/" className="flex shrink-0 items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/logo-circle.png"
               alt="Logo Sneaker"
-              className="h-[76px] w-[76px] shrink-0 rounded-full object-contain sm:h-[100px] sm:w-[100px]"
+              className="h-[54px] w-[54px] shrink-0 rounded-full object-contain sm:h-[64px] sm:w-[64px]"
             />
 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/figma/sneaker-wordmark.svg"
               alt="SNEAKER"
-              className="h-[22px] w-auto sm:h-[29px] sm:w-[206px]"
+              className="h-[19px] w-auto sm:h-[23px]"
             />
           </Link>
 
-          {/* Buscador central alargado como en el mockup */}
+          {/* Buscador central */}
           <form
             action="/catalogo"
             role="search"
-            className="mx-auto hidden h-[42px] w-full max-w-[420px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-4 lg:flex xl:max-w-[500px]"
+            className="mx-auto hidden h-[38px] w-full max-w-[400px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-3.5 lg:flex xl:max-w-[460px]"
           >
             <input
               type="search"
               name="q"
               placeholder="Buscar productos"
               aria-label="Buscar productos"
-              className="w-full bg-transparent text-[15px] font-normal text-[#2C2C2C] outline-none placeholder:italic placeholder:text-[#8A8A8A]"
+              className="w-full bg-transparent text-[14px] font-normal text-[#2C2C2C] outline-none placeholder:italic placeholder:text-[#8A8A8A]"
             />
             <button
               type="submit"
               aria-label="Buscar"
-              className="flex h-7 w-7 shrink-0 items-center justify-center text-[#1E1E1E] transition-opacity hover:opacity-75"
+              className="flex h-6 w-6 shrink-0 items-center justify-center text-[#1E1E1E] transition-opacity hover:opacity-75"
             >
               <svg
                 aria-hidden
@@ -134,7 +133,7 @@ export function Header() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="h-5 w-5"
+                className="h-4 w-4"
               >
                 <circle cx="11" cy="11" r="7" />
                 <path strokeLinecap="round" d="m20 20-3.5-3.5" />
@@ -143,7 +142,7 @@ export function Header() {
           </form>
 
           {/* Visitante: "INGRESAR" + Hamburguesa | Autenticado: Carrito + Perfil + Favoritos + Hamburguesa */}
-          <div className="ml-auto flex shrink-0 items-center gap-6 sm:gap-[34px]">
+          <div className="ml-auto flex shrink-0 items-center gap-5 sm:gap-7">
             <SessionButtons />
             <SideMenu />
           </div>
@@ -151,11 +150,11 @@ export function Header() {
       </div>
 
       {esRutaCuenta ? (
-        /* header2 de Cuenta (Figma 226:3571): 56 px, #E53935 */
+        /* header2 de Cuenta: compacto 38px, #E53935 */
         <div className="w-full bg-[#E53935]">
           <nav
             aria-label="Secciones de mi cuenta"
-            className="mx-auto flex h-[56px] w-full max-w-[1440px] items-center justify-start gap-6 overflow-x-auto px-4 sm:justify-center sm:gap-[42px] lg:gap-[53px]"
+            className="mx-auto flex h-[38px] w-full max-w-[1440px] items-center justify-start gap-6 overflow-x-auto px-4 sm:justify-center sm:gap-9 lg:gap-11"
           >
             {ENLACES_CUENTA.map((enlace, idx) => {
               const activo =
@@ -168,18 +167,18 @@ export function Header() {
               return (
                 <div
                   key={enlace.href}
-                  className="flex shrink-0 items-center gap-6 sm:gap-[42px] lg:gap-[53px]"
+                  className="flex shrink-0 items-center gap-6 sm:gap-9 lg:gap-11"
                 >
                   {idx > 0 && (
                     <span
                       aria-hidden
-                      className="h-[23px] w-px bg-white/80"
+                      className="h-4 w-px bg-white/80"
                     />
                   )}
                   <Link
                     href={enlace.href}
                     aria-current={activo ? "page" : undefined}
-                    className={`text-[17px] leading-[24px] text-white transition-opacity hover:opacity-80 sm:text-[20px] ${
+                    className={`text-[14px] leading-[20px] text-white transition-opacity hover:opacity-80 sm:text-[15px] ${
                       activo
                         ? "font-semibold underline decoration-2 underline-offset-4"
                         : "font-medium"
@@ -194,12 +193,12 @@ export function Header() {
         </div>
       ) : (
         <>
-          {/* header3 - 54 px, #7C0300 con iconos de OFERTAS y CUPONES como en el mockup */}
+          {/* header3 - barra fina de OFERTAS y CUPONES (32px) */}
           <div className="w-full bg-[#7C0300]">
-            <div className="mx-auto flex h-[52px] w-full max-w-[1440px] items-center justify-center gap-8 px-4 sm:gap-12 sm:px-8">
+            <div className="mx-auto flex h-[32px] w-full max-w-[1440px] items-center justify-center gap-6 px-4 sm:h-[34px] sm:gap-10 sm:px-8">
               <Link
                 href="/catalogo?ofertas=1"
-                className="flex items-center gap-2 text-lg font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-xl"
+                className="flex items-center gap-1.5 text-[13px] font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-[14px]"
               >
                 <svg
                   aria-hidden
@@ -207,7 +206,7 @@ export function Header() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-5 w-5 shrink-0"
+                  className="h-4 w-4 shrink-0"
                 >
                   <path
                     strokeLinecap="round"
@@ -221,11 +220,11 @@ export function Header() {
                 <span>OFERTAS</span>
               </Link>
 
-              <span aria-hidden className="h-5 w-px bg-white/70" />
+              <span aria-hidden className="h-3.5 w-px bg-white/70" />
 
               <Link
                 href="/catalogo?ofertas=1"
-                className="flex items-center gap-2 text-lg font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-xl"
+                className="flex items-center gap-1.5 text-[13px] font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-[14px]"
               >
                 <span>CUPONES</span>
                 <svg
@@ -234,7 +233,7 @@ export function Header() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-5 w-5 shrink-0"
+                  className="h-4 w-4 shrink-0"
                 >
                   <path
                     strokeLinecap="round"
@@ -247,23 +246,23 @@ export function Header() {
             </div>
           </div>
 
-          {/* header2 - 50 px, #E53935 distribuido a lo ancho */}
+          {/* header2 - barra fina de Categorías (36px) */}
           <div className="w-full bg-[#E53935]">
             <nav
               aria-label="Categorías"
-              className="mx-auto flex h-[50px] w-full max-w-[1560px] items-center justify-between gap-2 overflow-x-auto px-4 sm:px-8"
+              className="mx-auto flex h-[34px] w-full max-w-[1440px] items-center justify-between gap-2 overflow-x-auto px-4 sm:h-[36px] sm:px-8"
             >
               {CATEGORIAS.map((c, idx) => (
                 <div key={c} className="flex flex-1 items-center justify-center">
                   {idx > 0 && (
                     <span
                       aria-hidden
-                      className="mr-auto hidden h-5 w-px bg-white/70 md:block"
+                      className="mr-auto hidden h-3.5 w-px bg-white/70 md:block"
                     />
                   )}
                   <Link
                     href={`/catalogo?categoria=${encodeURIComponent(c.toLowerCase())}`}
-                    className="mx-auto shrink-0 px-2 text-lg font-medium italic text-white transition-opacity hover:opacity-80 sm:text-xl"
+                    className="mx-auto shrink-0 px-2 text-[14px] font-medium italic text-white transition-opacity hover:opacity-80 sm:text-[15px]"
                   >
                     {c}
                   </Link>

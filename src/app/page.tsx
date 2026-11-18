@@ -43,6 +43,8 @@ const DESTACADOS = [
   },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function PaginaInicio() {
   let productosBase: ProductoCatalogo[] = [];
   try {

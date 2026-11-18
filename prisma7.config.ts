@@ -14,7 +14,8 @@ export default defineConfig({
     // `prisma generate` (ejecutado en `npm install` via postinstall) funcione
     // incluso en un repositorio recien clonado antes de crear el archivo .env.
     url:
-      process.env.DATABASE_URL ??
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
       "postgresql://sneaker:sneaker_dev@localhost:5433/sneaker?schema=public",
   },
 });

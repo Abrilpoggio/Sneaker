@@ -6,7 +6,7 @@ accesorios y kits). Envios a todo Argentina.
 **Taller de Integracion · UADER / FCyT**
 Rochas Tadeo · Poggio Abril · Vineg Camila
 
-Estado: **Sprint 1 — Infraestructura, base de datos y autenticacion.**
+Estado: **Sprint 4 — Catálogo, carrito, checkout, pedidos, kits y extracciones.**
 
 ---
 
@@ -533,6 +533,45 @@ Verificacion: el mismo arnes agrega verificaciones de Tadeo: tarifas
 por ciudad/provincia/normalizacion (RF-45), contenido del correo de
 confirmacion y modo simulado (RF-28), ciclo de vida de la suscripcion
 y campana de novedades (RF-43/44).
+
+### Alcance de Abril en Sprint 4
+
+En `src/modules/pedidos`, `src/app/admin/pedidos`, `src/app/cuenta/pedidos` y
+`prisma/seed.ts` se implementa el panel administrativo de pedidos, el
+seguimiento de estados de despacho, el historial de compras del cliente y la
+poblacion integral del catalogo asignados a Abril:
+
+- **Panel administrativo de pedidos (`/admin/pedidos` — RF-30 / RF-31 / RF-46 / CU12)**:
+  vista exclusiva para rol `ADMIN` (`requireAdmin()`) con tarjetas de conteo
+  por estado (`CONFIRMADO`, `PREPARANDO`, `EN_CAMINO`, `RECIBIDO`, `PENDIENTE`,
+  `CANCELADO`, `RECHAZADO`), filtro por estado y buscador por numero de orden
+  (`SNK-...`), nombre, apellido o correo del comprador. Incluye boton para
+  generar un pedido de ejemplo si la base aun no registra ventas.
+- **Maquina de estados de despacho y restauracion de stock (RF-30 / RF-31 / RF-37)**:
+  `actualizarEstadoPedidoAdmin` valida las transiciones permitidas
+  (`CONFIRMADO` → `PREPARANDO` → `EN_CAMINO` → `RECIBIDO`, o paso a
+  `CANCELADO` antes de entregarse). Si un pedido con stock ya descontado se
+  cancela (`RF-37`), dentro de una unica transaccion de Prisma se restituyen
+  las unidades a cada variante (incluyendo los componentes congelados en
+  `componentesKit` cuando la linea corresponde a un kit) y se registra el
+  `MovimientoStock` de tipo `INGRESO` con justificacion, stock resultante y el
+  administrador responsable.
+- **Historial de compras y seguimiento del cliente (`/cuenta/pedidos` y `/pedido/[numeroOrden]` — RF-32 / CU11)**:
+  cada comprador autenticado consulta todas sus ordenes con su barra visual de
+  progreso de despacho (`BarraProgresoPedido`: Confirmado → Preparando → En
+  camino → Recibido), detalle de articulos, descuentos y direccion congelada en
+  el snapshot del pedido.
+- **Repetir compra anterior (`RF-33` / `CU10`)**: desde `/cuenta/pedidos` y
+  `/pedido/[numeroOrden]`, el boton *Repetir compra* vuelca al carrito actual
+  las variantes del pedido historico verificando el stock disponible al momento
+  de la accion e informando si algun articulo se encuentra agotado.
+- **Poblacion y curaduria del catalogo (`RNF-05`)**: ampliacion de
+  `prisma/seed.ts` a 42 productos unicos (29 modelos de calzado, 3 packs de
+  medias, 6 accesorios/cordones/cuidado y 4 kits/combos con stock dinamico)
+  distribuidos en las 8 categorias y 14 marcas, con fotografia de estudio
+  normalizada sobre fondo `#2C2C2C`, orientacion uniforme y variantes por
+  talle, color y material (incluyendo casos con stock 0 para `RF-09` y ≤ 10
+  unidades para el aviso `RN-09`).
 
 ### Alcance de Camila en Sprint 4
 

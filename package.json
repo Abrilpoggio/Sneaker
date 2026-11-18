@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "prisma generate && node -e \"const u=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(u){process.env.DATABASE_URL=u;try{require('child_process').execSync('npx prisma migrate deploy && npx prisma db seed',{stdio:'inherit'})}catch(e){console.warn('Aviso DB en build:',e.message)}}\" && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

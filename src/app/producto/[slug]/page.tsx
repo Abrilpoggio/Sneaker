@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CATEGORIAS_NAV } from "./categorias";
 import {
   obtenerProductoDetalle,
   calcularEstadoStock,
@@ -10,6 +9,7 @@ import {
 } from "@/modules/catalogo/catalogo";
 import { accionAgregarAlCarrito } from "@/modules/carrito/actions";
 import {
+  ImagenProductoConColor,
   SelectorKitCarrito,
   SelectorVarianteCarrito,
   type OpcionVarianteCarrito,
@@ -58,26 +58,13 @@ export default async function DetalleProductoPage({
   const { nombre, marca, categoria, precio, precioAnterior, descuento, stock, imagen, talles, etiquetas, descripcion, materiales } = producto;
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Enlaces de categoria 20px / 500 / lh24 */}
-      <nav aria-label="Categorias" className="flex flex-wrap gap-[47px]">
-        {CATEGORIAS_NAV.map((c) => (
-          <Link
-            key={c}
-            href={`/catalogo?categoria=${c.toLowerCase()}`}
-            className="text-xl font-medium leading-[24px] text-[#2C2C2C] transition-opacity hover:opacity-70"
-          >
-            {c}
-          </Link>
-        ))}
-      </nav>
-
-      {/* Volver 20px / 700 / lh24, #000000 */}
+    <div className="flex flex-col gap-6">
+      {/* Volver */}
       <Link
         href="/catalogo"
-        className="text-xl font-bold leading-[24px] text-black transition-opacity hover:opacity-70"
+        className="inline-flex w-fit items-center gap-1.5 text-base font-bold text-[#2C2C2C] transition-opacity hover:opacity-70"
       >
-        Volver
+        ← Volver al catálogo
       </Link>
 
       <div className="flex flex-col gap-10 lg:flex-row">
@@ -287,46 +274,23 @@ function renderDesdeBase({
   const esKit = variantesVista.length === 0 && componentesKit.length > 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Enlaces de categoria 20px / 500 / lh24 */}
-      <nav aria-label="Categorias" className="flex flex-wrap gap-[47px]">
-        {CATEGORIAS_NAV.map((c) => (
-          <Link
-            key={c}
-            href={`/catalogo?categoria=${c.toLowerCase()}`}
-            className="text-xl font-medium leading-[24px] text-[#2C2C2C] transition-opacity hover:opacity-70"
-          >
-            {c}
-          </Link>
-        ))}
-      </nav>
-
+    <div className="flex flex-col gap-6">
       <Link
         href="/catalogo"
-        className="text-xl font-bold leading-[24px] text-black transition-opacity hover:opacity-70"
+        className="inline-flex w-fit items-center gap-1.5 text-base font-bold text-[#2C2C2C] transition-opacity hover:opacity-70"
       >
-        Volver
+        ← Volver al catálogo
       </Link>
 
-      <div className="flex flex-col gap-10 lg:flex-row">
-        <div className="w-full max-w-[611px] rounded-[4px] p-2">
-          <div className="relative h-[532px] w-full overflow-hidden rounded-[4px] bg-[#2C2C2C]">
-            {imagen ? (
-              <Image
-                src={imagen}
-                alt={`${nombre} ${marca}`}
-                fill
-                sizes="(max-width: 1024px) 100vw, 593px"
-                className={`object-cover ${sinStock ? "grayscale" : ""}`}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center p-10 text-center">
-                <span className="text-[34px] font-bold leading-[41px] text-white/40">
-                  {nombre}
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="flex flex-col gap-8 lg:flex-row">
+        <div className="w-full max-w-[520px] rounded-[4px] p-1">
+          <ImagenProductoConColor
+            sku={sku}
+            imagenBase={imagen}
+            alt={`${nombre} ${marca}`}
+            nombre={nombre}
+            sinStock={sinStock}
+          />
         </div>
 
         <div className="flex flex-1 flex-col gap-4">
@@ -363,6 +327,7 @@ function renderDesdeBase({
             <SelectorVarianteCarrito
               accion={accionAgregarAlCarrito}
               variantes={variantesVista}
+              sku={sku}
             />
           ) : (
             <div className="flex flex-col gap-3">
