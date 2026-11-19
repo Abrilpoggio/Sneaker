@@ -411,12 +411,6 @@ function renderDesdeBase(
               <span className="rounded border border-[#009EE3]/40 bg-[#EBF7FD] px-2.5 py-1 text-xs font-semibold text-[#0073A8]">
                 Mercado Pago
               </span>
-              <span className="rounded border border-[#D9D9D9] bg-[#FAFAFA] px-2.5 py-1 text-xs font-medium text-[#2C2C2C]">
-                Tarjetas de crédito y débito
-              </span>
-              <span className="rounded border border-[#D9D9D9] bg-[#FAFAFA] px-2.5 py-1 text-xs font-medium text-[#2C2C2C]">
-                Dinero en cuenta / QR
-              </span>
             </div>
             <p className="mt-1 text-base font-light leading-[22px] text-black">
               {garantia ? `Garantía: ${garantia}` : "Garantía oficial Sneaker"}
