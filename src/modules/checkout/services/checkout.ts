@@ -146,7 +146,11 @@ export async function olvidarCupon(): Promise<void> {
  * su ventana de vigencia (decision 12 del modelado).
  */
 export async function validarCupon(codigoEntrada: unknown) {
-  const { codigo } = aplicarCuponSchema.parse(codigoEntrada);
+  const entradaNormalizada =
+    typeof codigoEntrada === "string"
+      ? { codigo: codigoEntrada }
+      : codigoEntrada;
+  const { codigo } = aplicarCuponSchema.parse(entradaNormalizada);
   const cupon = await prisma.cupon.findUnique({ where: { codigo } });
   if (!cupon || !cupon.activo) {
     throw new ErrorNegocioCheckout("CUPON_INEXISTENTE", "El cupón no existe o fue desactivado.");

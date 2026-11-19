@@ -81,21 +81,30 @@ export function FormularioCupon({
   }
 
   return (
-    <form action={aplicar} className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <label className="sr-only" htmlFor="codigo-cupon">
-          Código de cupón
-        </label>
+    <form
+      action={aplicar}
+      className="flex flex-col gap-2 rounded-md border border-[#D9D9D9] bg-white p-4"
+    >
+      <label
+        htmlFor="codigo-cupon"
+        className="text-sm font-semibold text-[#2C2C2C]"
+      >
+        ¿Tenés un cupón de descuento?
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
         <input
           id="codigo-cupon"
           name="codigo"
           type="text"
-          placeholder="Ingresá tu código"
+          placeholder="Ingresá el código de tu cupón (ej: BIENVENIDO10)"
           autoComplete="off"
-          className="min-w-0 flex-1 rounded border border-[#D9D9D9] px-3 py-2 text-base text-[#2C2C2C] outline-none focus:border-[#CF1A1F]"
+          className="min-w-0 flex-1 rounded border border-[#D9D9D9] px-3 py-2 text-base text-[#2C2C2C] outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F] focus:ring-1 focus:ring-[#CF1A1F]"
         />
-        <BotonConEstado className="rounded border border-[#2C2C2C] px-4 py-2 text-base font-medium text-[#2C2C2C] hover:bg-[#F5F5F5]">
-          Aplicar
+        <BotonConEstado
+          className="rounded border border-[#2C2C2C] bg-[#2C2C2C] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#CF1A1F] hover:border-[#CF1A1F]"
+          pendienteTexto="Aplicando..."
+        >
+          Aplicar cupón
         </BotonConEstado>
       </div>
       <MensajeEstado estado={estadoAplicar} />
