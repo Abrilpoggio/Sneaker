@@ -147,6 +147,40 @@ export function Header() {
             <SideMenu />
           </div>
         </div>
+
+        {/* Buscador compacto en movil y tablet (RNF-01) */}
+        <div className="mx-auto w-full max-w-[1440px] px-4 pb-2.5 lg:hidden">
+          <form
+            action="/catalogo"
+            role="search"
+            className="flex h-[36px] w-full items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-3"
+          >
+            <input
+              type="search"
+              name="q"
+              placeholder="Buscar zapatillas, marcas o talles..."
+              aria-label="Buscar productos"
+              className="w-full bg-transparent text-[14px] font-normal text-[#2C2C2C] outline-none placeholder:italic placeholder:text-[#8A8A8A]"
+            />
+            <button
+              type="submit"
+              aria-label="Buscar"
+              className="flex h-6 w-6 shrink-0 items-center justify-center text-[#1E1E1E]"
+            >
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-4 w-4"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
 
       {esRutaCuenta ? (

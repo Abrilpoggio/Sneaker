@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AsistenteBusqueda } from "@/components/catalogo/asistente-busqueda";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
 import {
   listarCatalogo,
@@ -346,20 +347,28 @@ export default async function CatalogoPage({
 
         {/* Columna principal de productos */}
         <section aria-label="Productos" className="flex flex-1 flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E5E5] pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E5] pb-4">
             <h2 className="text-lg font-semibold leading-[22px] text-black">
               {productos.length === 1
                 ? "1 producto encontrado"
                 : `${productos.length} productos encontrados`}
             </h2>
-            {soloOfertas && (
-              <Link
-                href="/catalogo"
-                className="text-sm font-semibold text-[#CF1A1F] underline hover:opacity-75"
-              >
-                Ver catálogo completo
-              </Link>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <AsistenteBusqueda
+                categorias={facetas.categorias}
+                etiquetas={facetas.etiquetas}
+                talles={facetas.talles}
+                variante="boton"
+              />
+              {soloOfertas && (
+                <Link
+                  href="/catalogo"
+                  className="text-sm font-semibold text-[#CF1A1F] underline hover:opacity-75"
+                >
+                  Ver catálogo completo
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-5">

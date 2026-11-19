@@ -1,25 +1,33 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { signIn, signOut } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   loginSchema,
   recuperacionSchema,
   registroSchema,
 } from "@/modules/auth/schemas";
 import {
+  generarTokenRecuperacion,
+  verificarTokenRecuperacion,
+} from "@/modules/auth/services/recuperacion";
+import {
   generarUsuarioUnico,
   registrarCliente,
   verificarDuplicadosRegistro,
 } from "@/modules/auth/services/usuarios";
+import { enviarCorreo } from "@/modules/emails/services/correo";
 
 export type EstadoFormulario = {
   error?: string;
   exito?: string;
+  enlaceDemo?: string;
   redirectTo?: string;
   erroresCampos?: Record<string, string>;
 };
@@ -236,14 +244,119 @@ export async function accionRecuperarPassword(
 
   if (!parsed.success) {
     return {
-      error: "Ingresa un correo electronico valido.",
+      error: "Ingresá un correo electrónico válido.",
       erroresCampos: aMapaErrores(parsed.error.flatten().fieldErrors),
     };
   }
 
+  const correo = parsed.data.correo.toLowerCase();
+  const usuario = await prisma.usuario.findUnique({
+    where: { correo },
+    select: {
+      id: true,
+      correo: true,
+      usuario: true,
+      passwordHash: true,
+      activo: true,
+    },
+  });
+
+  let enlaceDemo: string | undefined;
+
+  if (usuario && usuario.activo) {
+    const token = generarTokenRecuperacion(usuario.id, usuario.passwordHash);
+    const hdrs = await headers();
+    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+    const proto =
+      hdrs.get("x-forwarded-proto") ??
+      (host?.includes("localhost") ? "http" : "https");
+    const urlBase =
+      (host ? `${proto}://${host}` : null) ??
+      process.env.AUTH_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+
+    const rutaRelativa = `/recuperar/restablecer?token=${encodeURIComponent(token)}`;
+    const enlaceCompleto = `${urlBase.replace(/\/$/, "")}${rutaRelativa}`;
+
+    try {
+      const resultadoEnvio = await enviarCorreo({
+        para: usuario.correo,
+        asunto: "Restablecé tu contraseña · Sneaker",
+        html: `
+          <div style="font-family: Arial, sans-serif; color: #2C2C2C; max-width: 540px; margin: 0 auto;">
+            <h2 style="color: #CF1A1F;">Recuperación de contraseña</h2>
+            <p>Hola <strong>${usuario.usuario}</strong>,</p>
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Sneaker.</p>
+            <p style="margin: 24px 0;">
+              <a href="${enlaceCompleto}" style="background:#CF1A1F;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">
+                Restablecer contraseña
+              </a>
+            </p>
+            <p style="font-size:12px;color:#6B6B6B;">Este enlace expira en 30 minutos y es de un solo uso. Si no solicitaste este cambio, podés ignorar este correo.</p>
+          </div>
+        `,
+      });
+      if (resultadoEnvio === "SIMULADO") {
+        enlaceDemo = rutaRelativa;
+      }
+    } catch {
+      enlaceDemo = rutaRelativa;
+    }
+  }
+
   return {
     exito:
-      "Si el correo esta vinculado a una cuenta, recibiras un enlace para restablecer tu contrasena.",
+      "Si el correo está vinculado a una cuenta, enviamos un enlace para restablecer tu contraseña (válido por 30 minutos).",
+    enlaceDemo,
+  };
+}
+
+/**
+ * RF-14: valida el token de un solo uso y guarda la nueva contrasena hasheada.
+ */
+export async function accionRestablecerPassword(
+  _estadoPrevio: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const token = String(formData.get("token") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirmarPassword = String(formData.get("confirmarPassword") ?? "");
+
+  const erroresCampos: Record<string, string> = {};
+  if (password.length < 8) {
+    erroresCampos.password = "La contraseña debe tener al menos 8 caracteres.";
+  }
+  if (password !== confirmarPassword) {
+    erroresCampos.confirmarPassword = "Las contraseñas no coinciden.";
+  }
+  if (Object.keys(erroresCampos).length > 0) {
+    return {
+      error: "Revisá los campos de contraseña.",
+      erroresCampos,
+    };
+  }
+
+  const verificacion = await verificarTokenRecuperacion(token);
+  if (!verificacion.valido || !verificacion.usuario) {
+    return {
+      error:
+        verificacion.motivo ??
+        "El enlace expiró o ya fue utilizado. Solicitá uno nuevo.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.usuario.update({
+    where: { id: verificacion.usuario.id },
+    data: { passwordHash },
+  });
+
+  revalidatePath("/login");
+  return {
+    exito:
+      "¡Tu contraseña se actualizó correctamente! Ya podés iniciar sesión con tu nueva clave.",
   };
 }
 

@@ -1,10 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AsistenteBusqueda } from "@/components/catalogo/asistente-busqueda";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { ProductoCard } from "@/components/product-card";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
-import { listarCatalogo, type ProductoCatalogo } from "@/modules/catalogo/catalogo";
+import {
+  listarCatalogo,
+  obtenerFacetas,
+  type FacetasCatalogo,
+  type ProductoCatalogo,
+} from "@/modules/catalogo/catalogo";
 import { PRODUCTOS } from "@/modules/catalogo/productos";
 import { obtenerIdsFavoritosActual } from "@/modules/clients/services/favoritos";
 
@@ -50,10 +56,19 @@ export const dynamic = "force-dynamic";
 export default async function PaginaInicio() {
   let productosBase: ProductoCatalogo[] = [];
   let favoritosIds = new Set<string>();
+  let facetas: FacetasCatalogo = {
+    categorias: [],
+    marcas: [],
+    etiquetas: [],
+    talles: [],
+    colores: [],
+    materiales: [],
+  };
   try {
-    [productosBase, favoritosIds] = await Promise.all([
+    [productosBase, favoritosIds, facetas] = await Promise.all([
       listarCatalogo({ disponibilidad: "todas", orden: "relevancia" }),
       obtenerIdsFavoritosActual(),
+      obtenerFacetas(),
     ]);
   } catch {
     productosBase = [];
@@ -95,6 +110,19 @@ export default async function PaginaInicio() {
             Ver Catálogo Completo
           </Link>
         </div>
+      </section>
+
+      {/* Asistente guiado de busqueda (RF-08) */}
+      <section
+        aria-label="Asistente guiado de búsqueda"
+        className="mx-auto w-full max-w-[1287px] px-4 pt-8 sm:px-8"
+      >
+        <AsistenteBusqueda
+          categorias={facetas.categorias}
+          etiquetas={facetas.etiquetas}
+          talles={facetas.talles}
+          variante="banner"
+        />
       </section>
 
       {/* Novedades: 4 tarjetas alineadas en una sola fila en escritorio */}
