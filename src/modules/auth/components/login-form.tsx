@@ -1,9 +1,8 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
-import { signIn, useSesion } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 import {
   accionIniciarSesion,
   type EstadoFormulario,
@@ -23,8 +22,6 @@ export function LoginForm({
   googleHabilitado = false,
   mensajeExito,
 }: Props) {
-  const router = useRouter();
-  const { update } = useSesion();
   const [estado, formAction, pendiente] = useActionState(
     accionIniciarSesion,
     estadoInicial,
@@ -34,21 +31,10 @@ export function LoginForm({
 
   useEffect(() => {
     if (!estado.redirectTo) return;
-    let cancelado = false;
-
-    void (async () => {
-      // Actualizamos el SessionProvider del cliente antes de navegar para que
-      // el Header y el SideMenu reflejen el usuario logueado de inmediato.
-      await update();
-      if (cancelado) return;
-      router.replace(estado.redirectTo!);
-      router.refresh();
-    })();
-
-    return () => {
-      cancelado = true;
-    };
-  }, [estado.redirectTo, router, update]);
+    // Navegacion completa para asegurar que la cookie httpOnly de sesion
+    // y el SessionProvider se hidraten frescos sin quedarse bloqueados en update().
+    window.location.assign(estado.redirectTo);
+  }, [estado.redirectTo]);
 
   return (
     <div className="flex min-h-[440px] w-full max-w-[469px] flex-col items-center rounded-[40px] bg-[linear-gradient(180deg,rgba(255,0,7,0.8)_0%,rgba(153,0,4,1)_100%)] px-6 pt-[37px] pb-[32px] shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)]">
