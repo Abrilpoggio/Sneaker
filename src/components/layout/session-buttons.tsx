@@ -66,8 +66,8 @@ export function SessionButtons() {
   }
 
   return (
-    <div className="flex items-center gap-4 sm:gap-[30px]">
-      {/* 1. Shopping Cart (42 x 42) + badge de cantidad */}
+    <div className="flex items-center gap-2 sm:gap-3">
+      {/* 1. Carrito de compras + badge compacto */}
       <Link
         href="/carrito"
         aria-label={
@@ -75,15 +75,15 @@ export function SessionButtons() {
             ? `Carrito de compras (${totalCarrito} artículos)`
             : "Carrito de compras"
         }
-        className="relative flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
+        className="relative flex h-[38px] w-[38px] items-center justify-center rounded-md text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
-          className="h-[32px] w-[32px] sm:h-[36px] sm:w-[36px]"
+          strokeWidth="1.9"
+          className="h-[23px] w-[23px] sm:h-[25px] sm:w-[25px]"
         >
           <circle cx="9" cy="21" r="1.5" />
           <circle cx="20" cy="21" r="1.5" />
@@ -94,13 +94,13 @@ export function SessionButtons() {
           />
         </svg>
         {totalCarrito > 0 && (
-          <span className="absolute -right-1 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#CF1A1F] px-1 text-[11px] font-bold leading-none text-white shadow">
+          <span className="absolute right-0 top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#CF1A1F] px-1 text-[10px] font-bold leading-none text-white shadow">
             {totalCarrito > 99 ? "99+" : totalCarrito}
           </span>
         )}
       </Link>
 
-      {/* 2. Profile Circle (42 x 42) */}
+      {/* 2. Perfil / Panel Admin */}
       <Link
         href={esAdmin ? "/admin" : "/cuenta"}
         aria-label={esAdmin ? "Panel de administración" : "Mi perfil"}
@@ -109,15 +109,15 @@ export function SessionButtons() {
           sesion?.user?.usuario ??
           (esAdmin ? "Panel Admin" : "Mi Cuenta")
         }
-        className="flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
+        className="flex h-[38px] w-[38px] items-center justify-center rounded-md text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
-          className="h-[36px] w-[36px]"
+          strokeWidth="1.9"
+          className="h-[23px] w-[23px] sm:h-[25px] sm:w-[25px]"
         >
           <circle cx="12" cy="12" r="9.5" />
           <circle cx="12" cy="9.5" r="3" />
@@ -125,19 +125,19 @@ export function SessionButtons() {
         </svg>
       </Link>
 
-      {/* 3. Heart / Favoritos (42 x 42) */}
+      {/* 3. Favoritos */}
       <Link
         href="/cuenta/favoritos"
         aria-label="Mis favoritos"
-        className="flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
+        className="flex h-[38px] w-[38px] items-center justify-center rounded-md text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
-          className="h-[36px] w-[36px]"
+          strokeWidth="1.9"
+          className="h-[23px] w-[23px] sm:h-[25px] sm:w-[25px]"
         >
           <path
             strokeLinecap="round"
