@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { RolUsuario, EstadoProducto, TipoMovimiento } from "../src/generated/prisma/enums";
+import { sembrarDatosDemo } from "./seeds/datos-demo";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -1409,6 +1410,16 @@ async function main() {
   });
 
   console.log("  1 cupon (BIENVENIDO10) | 1 promocion (Temporada Basketball)");
+
+  // RNF-05: Carga masiva de datos de prueba (Sprint 4)
+  try {
+    await sembrarDatosDemo(prisma);
+  } catch (errDemo: unknown) {
+    console.error(
+      "\n[Aviso RNF-05] Error al sembrar datos de prueba demo:",
+      errDemo instanceof Error ? errDemo.message : errDemo,
+    );
+  }
 
   console.log("\nListo.");
   console.log("Accesos de prueba:");

@@ -79,6 +79,25 @@ export default async function PaginaAdmin() {
         </div>
       </section>
 
+      <section aria-labelledby="titulo-reportes" className="rounded-card border border-borde p-4 bg-gray-50/50">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 id="titulo-reportes" className="text-base font-semibold text-[#2C2C2C]">
+              Reportes y Estadísticas de Ventas (RF-47 / RF-48)
+            </h2>
+            <p className="mt-1 text-sm text-texto-tenue">
+              Visualizá KPIs comerciales, ranking de productos y clientes, y exportá registros consolidados a Excel (.xlsx).
+            </p>
+          </div>
+          <Link
+            href="/admin/reportes"
+            className="inline-flex items-center gap-2 rounded-md bg-[#CF1A1F] px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-[#b0161a]"
+          >
+            Ver Reportes y Exportar &rarr;
+          </Link>
+        </div>
+      </section>
+
       <section aria-labelledby="titulo-catalogo" className="rounded-card border border-borde p-4">
         <h2 id="titulo-catalogo" className="text-sm font-semibold">
           Catalogo e inventario
