@@ -22,8 +22,8 @@ import {
   PROVINCIAS_ARGENTINA,
   type EstadoAccionCliente,
 } from "../schemas";
-import type { SugerenciaDireccion } from "@/app/api/direcciones/autocompletar/route";
-import { CampoCalleAutocompletar } from "./campo-calle-autocompletar";
+import type { SugerenciaCiudad } from "@/app/api/direcciones/autocompletar/route";
+import { CampoCiudadAutocompletar } from "./campo-ciudad-autocompletar";
 
 /**
  * Gestor CRUD de "Mis direcciones" reconstruido 1:1 desde Figma:
@@ -138,12 +138,9 @@ export function DireccionesManager({
     setModal({ tipo: "editar", direccion });
   };
 
-  const aplicarSugerencia = (sug: SugerenciaDireccion) => {
-    setCalle(sug.calle);
-    if (sug.numero) setNumero(sug.numero);
-    if (sug.ciudad) setCiudad(sug.ciudad);
+  const aplicarSugerenciaCiudad = (sug: SugerenciaCiudad) => {
+    setCiudad(sug.ciudad);
     if (sug.provincia) setProvincia(sug.provincia);
-    if (sug.codigoPostal) setCodigoPostal(sug.codigoPostal);
   };
 
   const cerrarModal = () => {
@@ -637,14 +634,14 @@ export function DireccionesManager({
                   >
                     Dirección (Calle) *
                   </label>
-                  <CampoCalleAutocompletar
+                  <input
                     id="dir-calle"
                     name="calle"
+                    type="text"
                     required
                     value={calle}
-                    onChange={setCalle}
-                    onSeleccionar={aplicarSugerencia}
-                    placeholder="Empezá a escribir calle y altura..."
+                    onChange={(e) => setCalle(e.target.value)}
+                    placeholder="Ingrese su calle"
                     className="h-[42px] w-full rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
                   {estadoForm.erroresCampos?.calle?.[0] && (
@@ -725,15 +722,15 @@ export function DireccionesManager({
                   >
                     Ciudad *
                   </label>
-                  <input
+                  <CampoCiudadAutocompletar
                     id="dir-ciudad"
                     name="ciudad"
-                    type="text"
                     required
                     value={ciudad}
-                    onChange={(e) => setCiudad(e.target.value)}
-                    placeholder="Ingrese su ciudad"
-                    className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
+                    onChange={setCiudad}
+                    onSeleccionar={aplicarSugerenciaCiudad}
+                    placeholder="Empezá a escribir tu ciudad..."
+                    className="h-[42px] w-full rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
                   {estadoForm.erroresCampos?.ciudad?.[0] && (
                     <p className="text-[12px] font-medium text-[#CF1A1F]">

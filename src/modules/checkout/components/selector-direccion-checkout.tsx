@@ -12,8 +12,8 @@ import {
   MAXIMO_DIRECCIONES_POR_CLIENTE,
   PROVINCIAS_ARGENTINA,
 } from "@/modules/clients/schemas";
-import type { SugerenciaDireccion } from "@/app/api/direcciones/autocompletar/route";
-import { CampoCalleAutocompletar } from "@/modules/clients/components/campo-calle-autocompletar";
+import type { SugerenciaCiudad } from "@/app/api/direcciones/autocompletar/route";
+import { CampoCiudadAutocompletar } from "@/modules/clients/components/campo-ciudad-autocompletar";
 
 export interface DireccionCheckoutItem {
   id: string;
@@ -77,12 +77,9 @@ export function SelectorDireccionCheckout({
     setModoForm("editar");
   };
 
-  const aplicarSugerencia = (sug: SugerenciaDireccion) => {
-    setCalle(sug.calle);
-    if (sug.numero) setNumero(sug.numero);
-    if (sug.ciudad) setCiudad(sug.ciudad);
+  const aplicarSugerenciaCiudad = (sug: SugerenciaCiudad) => {
+    setCiudad(sug.ciudad);
     if (sug.provincia) setProvincia(sug.provincia);
-    if (sug.codigoPostal) setCodigoPostal(sug.codigoPostal);
   };
 
   const [estadoForm, formAction, guardando] = useActionState(
@@ -276,14 +273,13 @@ export function SelectorDireccionCheckout({
               >
                 Calle *
               </label>
-              <CampoCalleAutocompletar
+              <input
                 id="dir-calle"
                 name="calle"
                 required
                 value={calle}
-                onChange={setCalle}
-                onSeleccionar={aplicarSugerencia}
-                placeholder="Empezá a escribir calle y altura..."
+                onChange={(e) => setCalle(e.target.value)}
+                placeholder="Ej: Av. Costanera"
                 className={inputClass}
               />
               {estadoForm.erroresCampos?.calle && (
@@ -323,13 +319,14 @@ export function SelectorDireccionCheckout({
               >
                 Ciudad / Localidad *
               </label>
-              <input
+              <CampoCiudadAutocompletar
                 id="dir-ciudad"
                 name="ciudad"
                 required
                 value={ciudad}
-                onChange={(e) => setCiudad(e.target.value)}
-                placeholder="Ej: Colón"
+                onChange={setCiudad}
+                onSeleccionar={aplicarSugerenciaCiudad}
+                placeholder="Empezá a escribir tu ciudad..."
                 className={inputClass}
               />
               {estadoForm.erroresCampos?.ciudad && (

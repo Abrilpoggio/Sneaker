@@ -2,38 +2,35 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import type { SugerenciaDireccion } from "@/app/api/direcciones/autocompletar/route";
+import type { SugerenciaCiudad } from "@/app/api/direcciones/autocompletar/route";
 
-interface CampoCalleAutocompletarProps {
+interface CampoCiudadAutocompletarProps {
   id: string;
   name?: string;
   value: string;
   onChange: (valor: string) => void;
-  onSeleccionar: (sugerencia: SugerenciaDireccion) => void;
-  provinciaContexto?: string;
+  onSeleccionar: (sugerencia: SugerenciaCiudad) => void;
   placeholder?: string;
   className?: string;
   required?: boolean;
 }
 
 /**
- * Input de calle con autocompletado de direcciones argentinas.
- * Consulta `/api/direcciones/autocompletar` con debounce de 350ms y permite
- * seleccionar una sugerencia (con mouse o teclado) para completar calle,
- * altura, ciudad, provincia y codigo postal automaticamente.
+ * Input de Ciudad / Localidad con autocompletado de localidades argentinas.
+ * Consulta `/api/direcciones/autocompletar` desde 2 caracteres con debounce
+ * de 250ms y completa automaticamente ciudad y provincia al seleccionar.
  */
-export function CampoCalleAutocompletar({
+export function CampoCiudadAutocompletar({
   id,
-  name = "calle",
+  name = "ciudad",
   value,
   onChange,
   onSeleccionar,
-  provinciaContexto,
-  placeholder = "Empezá a escribir calle y altura...",
+  placeholder = "Empezá a escribir tu ciudad...",
   className,
   required = true,
-}: CampoCalleAutocompletarProps) {
-  const [sugerencias, setSugerencias] = useState<SugerenciaDireccion[]>([]);
+}: CampoCiudadAutocompletarProps) {
+  const [sugerencias, setSugerencias] = useState<SugerenciaCiudad[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [indiceActivo, setIndiceActivo] = useState(-1);
@@ -41,7 +38,6 @@ export function CampoCalleAutocompletar({
   const contenedorRef = useRef<HTMLDivElement>(null);
   const ignorarSiguienteBusquedaRef = useRef(false);
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const manejarClickAfuera = (evento: MouseEvent) => {
       if (
@@ -55,7 +51,6 @@ export function CampoCalleAutocompletar({
     return () => document.removeEventListener("mousedown", manejarClickAfuera);
   }, []);
 
-  // Busqueda con debounce
   useEffect(() => {
     if (ignorarSiguienteBusquedaRef.current) {
       ignorarSiguienteBusquedaRef.current = false;
@@ -63,7 +58,7 @@ export function CampoCalleAutocompletar({
     }
 
     const texto = value.trim();
-    if (texto.length < 3) {
+    if (texto.length < 2) {
       return;
     }
 
@@ -72,9 +67,6 @@ export function CampoCalleAutocompletar({
       setCargando(true);
       try {
         const params = new URLSearchParams({ q: texto });
-        if (provinciaContexto && provinciaContexto.trim().length > 0) {
-          params.set("provincia", provinciaContexto.trim());
-        }
         const res = await fetch(
           `/api/direcciones/autocompletar?${params.toString()}`,
           { signal: controller.signal },
@@ -84,7 +76,7 @@ export function CampoCalleAutocompletar({
           return;
         }
         const data = (await res.json()) as {
-          sugerencias?: SugerenciaDireccion[];
+          sugerencias?: SugerenciaCiudad[];
         };
         const lista = Array.isArray(data.sugerencias) ? data.sugerencias : [];
         setSugerencias(lista);
@@ -98,15 +90,15 @@ export function CampoCalleAutocompletar({
           setCargando(false);
         }
       }
-    }, 350);
+    }, 250);
 
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [value, provinciaContexto]);
+  }, [value]);
 
-  const elegirSugerencia = (item: SugerenciaDireccion) => {
+  const elegirSugerencia = (item: SugerenciaCiudad) => {
     ignorarSiguienteBusquedaRef.current = true;
     setAbierto(false);
     setSugerencias([]);
@@ -145,7 +137,7 @@ export function CampoCalleAutocompletar({
           onChange={(e) => {
             const nuevoValor = e.target.value;
             onChange(nuevoValor);
-            if (nuevoValor.trim().length >= 3) {
+            if (nuevoValor.trim().length >= 2) {
               setAbierto(true);
             } else {
               setAbierto(false);
@@ -180,7 +172,7 @@ export function CampoCalleAutocompletar({
         <ul
           id={`${id}-sugerencias`}
           role="listbox"
-          className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-[8px] border border-[#D9D9D9] bg-white py-1 shadow-lg"
+          className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-[8px] border border-[#D9D9D9] bg-white py-1 shadow-lg"
         >
           {sugerencias.map((item, idx) => {
             const activo = idx === indiceActivo;
@@ -195,17 +187,17 @@ export function CampoCalleAutocompletar({
                 }}
                 onMouseEnter={() => setIndiceActivo(idx)}
                 className={`cursor-pointer px-3 py-2 text-left transition-colors ${
-                  activo ? "bg-[#FFF5F5] text-[#CF1A1F]" : "text-[#2C2C2C] hover:bg-[#F5F5F5]"
+                  activo
+                    ? "bg-[#FFF5F5] text-[#CF1A1F]"
+                    : "text-[#2C2C2C] hover:bg-[#F5F5F5]"
                 }`}
               >
                 <p className="text-[13px] font-semibold leading-tight">
-                  {item.etiqueta}
+                  {item.ciudad}
                 </p>
-                {item.subtitulo && (
-                  <p className="mt-0.5 text-[11px] text-[#6B6B6B]">
-                    {item.subtitulo}
-                  </p>
-                )}
+                <p className="mt-0.5 text-[11px] text-[#6B6B6B]">
+                  {item.provincia}
+                </p>
               </li>
             );
           })}

@@ -6,17 +6,17 @@ import { z } from "zod";
  */
 
 /**
- * RN-04: la reserva dura entre 1 y 2 minutos. Se fija en 90 segundos,
- * el punto medio de la ventana que pide el cliente.
+ * RN-04 / RF-29: la reserva dura entre 1 y 2 minutos. Se fija en 120 segundos
+ * (2 minutos exactos), el máximo de la ventana definida para dar comodidad al comprador.
  */
-export const DURACION_RESERVA_SEG = 90;
+export const DURACION_RESERVA_SEG = 120;
 
 /** RF-21: tope defensivo por linea; el tope real es el stock (RN-05). */
 export const CANTIDAD_MAXIMA_POR_ITEM = 99;
 
 /** RN-01: sin sesion no hay carrito. Mensaje para acciones anonimas. */
 export const MENSAJE_SESION_REQUERIDA =
-  "Iniciá sesión para agregar productos al carrito (RN-01).";
+  "Iniciá sesión para agregar productos al carrito.";
 
 const idReferencia = z
   .string()
