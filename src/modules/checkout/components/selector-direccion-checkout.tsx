@@ -8,7 +8,12 @@ import {
   accionSeleccionarDireccionCheckout,
   ESTADO_INICIAL_DIRECCION_CHECKOUT,
 } from "@/modules/checkout/direccion-actions";
-import { MAXIMO_DIRECCIONES_POR_CLIENTE } from "@/modules/clients/schemas";
+import {
+  MAXIMO_DIRECCIONES_POR_CLIENTE,
+  PROVINCIAS_ARGENTINA,
+} from "@/modules/clients/schemas";
+import type { SugerenciaDireccion } from "@/app/api/direcciones/autocompletar/route";
+import { CampoCalleAutocompletar } from "@/modules/clients/components/campo-calle-autocompletar";
 
 export interface DireccionCheckoutItem {
   id: string;
@@ -43,8 +48,42 @@ export function SelectorDireccionCheckout({
     direcciones.length === 0 ? "nueva" : "cerrado",
   );
   const [editando, setEditando] = useState<DireccionCheckoutItem | null>(null);
+  const [calle, setCalle] = useState("");
+  const [numero, setNumero] = useState("");
+  const [ciudad, setCiudad] = useState("");
+  const [provincia, setProvincia] = useState<string>("Entre Ríos");
+  const [codigoPostal, setCodigoPostal] = useState("");
+
   const [pendienteSeleccion, startTransition] = useTransition();
   const [errorSeleccion, setErrorSeleccion] = useState<string | null>(null);
+
+  const abrirFormNueva = () => {
+    setEditando(null);
+    setCalle("");
+    setNumero("");
+    setCiudad("");
+    setProvincia("Entre Ríos");
+    setCodigoPostal("");
+    setModoForm("nueva");
+  };
+
+  const abrirFormEditar = (dir: DireccionCheckoutItem) => {
+    setEditando(dir);
+    setCalle(dir.calle);
+    setNumero(dir.numero);
+    setCiudad(dir.ciudad);
+    setProvincia(dir.provincia);
+    setCodigoPostal(dir.codigoPostal ?? "");
+    setModoForm("editar");
+  };
+
+  const aplicarSugerencia = (sug: SugerenciaDireccion) => {
+    setCalle(sug.calle);
+    if (sug.numero) setNumero(sug.numero);
+    if (sug.ciudad) setCiudad(sug.ciudad);
+    if (sug.provincia) setProvincia(sug.provincia);
+    if (sug.codigoPostal) setCodigoPostal(sug.codigoPostal);
+  };
 
   const [estadoForm, formAction, guardando] = useActionState(
     async (
@@ -98,10 +137,7 @@ export function SelectorDireccionCheckout({
         {modoForm === "cerrado" && puedeAgregarMas && (
           <button
             type="button"
-            onClick={() => {
-              setEditando(null);
-              setModoForm("nueva");
-            }}
+            onClick={abrirFormNueva}
             className="rounded border border-[#CF1A1F] px-3 py-1.5 text-sm font-semibold text-[#CF1A1F] transition-colors hover:bg-[#FFF5F5]"
           >
             + Nueva dirección
@@ -168,10 +204,7 @@ export function SelectorDireccionCheckout({
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setEditando(dir);
-                      setModoForm("editar");
-                    }}
+                    onClick={() => abrirFormEditar(dir)}
                     className="text-xs font-semibold text-[#4E4E4E] underline hover:text-[#2C2C2C]"
                   >
                     Editar
@@ -243,12 +276,14 @@ export function SelectorDireccionCheckout({
               >
                 Calle *
               </label>
-              <input
+              <CampoCalleAutocompletar
                 id="dir-calle"
                 name="calle"
                 required
-                defaultValue={editando?.calle ?? ""}
-                placeholder="Ej: Av. Costanera"
+                value={calle}
+                onChange={setCalle}
+                onSeleccionar={aplicarSugerencia}
+                placeholder="Empezá a escribir calle y altura..."
                 className={inputClass}
               />
               {estadoForm.erroresCampos?.calle && (
@@ -269,7 +304,8 @@ export function SelectorDireccionCheckout({
                 id="dir-numero"
                 name="numero"
                 required
-                defaultValue={editando?.numero ?? ""}
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
                 placeholder="Ej: 123"
                 className={inputClass}
               />
@@ -291,7 +327,8 @@ export function SelectorDireccionCheckout({
                 id="dir-ciudad"
                 name="ciudad"
                 required
-                defaultValue={editando?.ciudad ?? ""}
+                value={ciudad}
+                onChange={(e) => setCiudad(e.target.value)}
                 placeholder="Ej: Colón"
                 className={inputClass}
               />
@@ -309,14 +346,24 @@ export function SelectorDireccionCheckout({
               >
                 Provincia *
               </label>
-              <input
+              <select
                 id="dir-provincia"
                 name="provincia"
                 required
-                defaultValue={editando?.provincia ?? ""}
-                placeholder="Ej: Entre Ríos"
+                value={provincia}
+                onChange={(e) => setProvincia(e.target.value)}
                 className={inputClass}
-              />
+              >
+                {provincia &&
+                  !PROVINCIAS_ARGENTINA.includes(
+                    provincia as (typeof PROVINCIAS_ARGENTINA)[number],
+                  ) && <option value={provincia}>{provincia}</option>}
+                {PROVINCIAS_ARGENTINA.map((prov) => (
+                  <option key={prov} value={prov}>
+                    {prov}
+                  </option>
+                ))}
+              </select>
               {estadoForm.erroresCampos?.provincia && (
                 <p className="mt-1 text-xs text-[#CF1A1F]">
                   {estadoForm.erroresCampos.provincia}
@@ -334,7 +381,8 @@ export function SelectorDireccionCheckout({
               <input
                 id="dir-cp"
                 name="codigoPostal"
-                defaultValue={editando?.codigoPostal ?? ""}
+                value={codigoPostal}
+                onChange={(e) => setCodigoPostal(e.target.value)}
                 placeholder="Ej: 3280"
                 className={inputClass}
               />

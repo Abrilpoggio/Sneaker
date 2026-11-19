@@ -22,6 +22,8 @@ import {
   PROVINCIAS_ARGENTINA,
   type EstadoAccionCliente,
 } from "../schemas";
+import type { SugerenciaDireccion } from "@/app/api/direcciones/autocompletar/route";
+import { CampoCalleAutocompletar } from "./campo-calle-autocompletar";
 
 /**
  * Gestor CRUD de "Mis direcciones" reconstruido 1:1 desde Figma:
@@ -89,6 +91,12 @@ export function DireccionesManager({
   const [pendienteForm, iniciarTransicionForm] = useTransition();
   const [pendienteTarjeta, iniciarTransicionTarjeta] = useTransition();
 
+  const [calle, setCalle] = useState("");
+  const [numero, setNumero] = useState("");
+  const [ciudad, setCiudad] = useState("");
+  const [codigoPostal, setCodigoPostal] = useState("");
+  const [provincia, setProvincia] = useState<string>("Entre Ríos");
+
   const limiteAlcanzado =
     direcciones.length >= MAXIMO_DIRECCIONES_POR_CLIENTE;
 
@@ -111,13 +119,31 @@ export function DireccionesManager({
     if (limiteAlcanzado) return;
     setEstadoForm(ESTADO_INICIAL_CLIENTE);
     setAvisoGlobal(null);
+    setCalle("");
+    setNumero("");
+    setCiudad("");
+    setCodigoPostal("");
+    setProvincia("Entre Ríos");
     setModal({ tipo: "crear" });
   };
 
   const abrirModalEditar = (direccion: DireccionItemDTO) => {
     setEstadoForm(ESTADO_INICIAL_CLIENTE);
     setAvisoGlobal(null);
+    setCalle(direccion.calle);
+    setNumero(direccion.numero);
+    setCiudad(direccion.ciudad);
+    setCodigoPostal(direccion.codigoPostal ?? "");
+    setProvincia(direccion.provincia);
     setModal({ tipo: "editar", direccion });
+  };
+
+  const aplicarSugerencia = (sug: SugerenciaDireccion) => {
+    setCalle(sug.calle);
+    if (sug.numero) setNumero(sug.numero);
+    if (sug.ciudad) setCiudad(sug.ciudad);
+    if (sug.provincia) setProvincia(sug.provincia);
+    if (sug.codigoPostal) setCodigoPostal(sug.codigoPostal);
   };
 
   const cerrarModal = () => {
@@ -611,14 +637,15 @@ export function DireccionesManager({
                   >
                     Dirección (Calle) *
                   </label>
-                  <input
+                  <CampoCalleAutocompletar
                     id="dir-calle"
                     name="calle"
-                    type="text"
                     required
-                    defaultValue={direccionEditando?.calle ?? ""}
-                    placeholder="Ingrese su calle"
-                    className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
+                    value={calle}
+                    onChange={setCalle}
+                    onSeleccionar={aplicarSugerencia}
+                    placeholder="Empezá a escribir calle y altura..."
+                    className="h-[42px] w-full rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
                   {estadoForm.erroresCampos?.calle?.[0] && (
                     <p className="text-[12px] font-medium text-[#CF1A1F]">
@@ -639,7 +666,8 @@ export function DireccionesManager({
                     name="numero"
                     type="text"
                     required
-                    defaultValue={direccionEditando?.numero ?? ""}
+                    value={numero}
+                    onChange={(e) => setNumero(e.target.value)}
                     placeholder="Ej: 213"
                     className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
@@ -702,7 +730,8 @@ export function DireccionesManager({
                     name="ciudad"
                     type="text"
                     required
-                    defaultValue={direccionEditando?.ciudad ?? ""}
+                    value={ciudad}
+                    onChange={(e) => setCiudad(e.target.value)}
                     placeholder="Ingrese su ciudad"
                     className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
@@ -724,7 +753,8 @@ export function DireccionesManager({
                     id="dir-cp"
                     name="codigoPostal"
                     type="text"
-                    defaultValue={direccionEditando?.codigoPostal ?? ""}
+                    value={codigoPostal}
+                    onChange={(e) => setCodigoPostal(e.target.value)}
                     placeholder="Ej: 3260"
                     className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none placeholder:text-[#9E9E9E] focus:border-[#CF1A1F]"
                   />
@@ -748,16 +778,15 @@ export function DireccionesManager({
                   id="dir-provincia"
                   name="provincia"
                   required
-                  defaultValue={direccionEditando?.provincia ?? "Entre Ríos"}
+                  value={provincia}
+                  onChange={(e) => setProvincia(e.target.value)}
                   className="h-[42px] rounded-[7px] border border-[#D9D9D9] bg-white px-3 text-[14px] text-black outline-none focus:border-[#CF1A1F]"
                 >
-                  {direccionEditando?.provincia &&
+                  {provincia &&
                     !PROVINCIAS_ARGENTINA.includes(
-                      direccionEditando.provincia as (typeof PROVINCIAS_ARGENTINA)[number],
+                      provincia as (typeof PROVINCIAS_ARGENTINA)[number],
                     ) && (
-                      <option value={direccionEditando.provincia}>
-                        {direccionEditando.provincia}
-                      </option>
+                      <option value={provincia}>{provincia}</option>
                     )}
                   {PROVINCIAS_ARGENTINA.map((prov) => (
                     <option key={prov} value={prov}>
