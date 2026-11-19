@@ -33,7 +33,12 @@ const CATEGORIAS = [
   "Accesorios",
   "Kits",
 ];
-const RUTAS_AUTH = new Set(["/login", "/registro", "/recuperar"]);
+const RUTAS_AUTH = new Set([
+  "/login",
+  "/registro",
+  "/recuperar",
+  "/recuperar/restablecer",
+]);
 const ENLACES_CUENTA = [
   { href: "/cuenta/pedidos", label: "Mis Compras" },
   { href: "/cuenta/favoritos", label: "Mis Favoritos" },
@@ -47,6 +52,9 @@ export function Header() {
   const esRutaAuth = Boolean(pathname && RUTAS_AUTH.has(pathname));
   const esRutaCuenta = Boolean(
     pathname && (pathname === "/cuenta" || pathname.startsWith("/cuenta/")),
+  );
+  const esRutaAdmin = Boolean(
+    pathname && (pathname === "/admin" || pathname.startsWith("/admin/")),
   );
 
   if (esRutaAuth) {
@@ -183,7 +191,7 @@ export function Header() {
         </div>
       </div>
 
-      {esRutaCuenta ? (
+      {esRutaAdmin ? null : esRutaCuenta ? (
         /* header2 de Cuenta: compacto 38px, #E53935 */
         <div className="w-full bg-[#E53935]">
           <nav

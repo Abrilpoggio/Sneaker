@@ -8,6 +8,8 @@ import {
   accionAlternarPromocion,
   accionCrearCupon,
   accionCrearPromocion,
+  accionEditarCupon,
+  accionEditarPromocion,
   accionEliminarCupon,
   accionEliminarPromocion,
 } from "@/modules/marketing/actions";
@@ -92,6 +94,8 @@ export function MarketingAdminUI({
   const router = useRouter();
   const [pestana, setPestana] = useState<"promociones" | "cupones">("promociones");
   const [alcance, setAlcance] = useState<"todos" | "seleccionados">("todos");
+  const [editandoPromoId, setEditandoPromoId] = useState<string | null>(null);
+  const [editandoCuponId, setEditandoCuponId] = useState<string | null>(null);
   const [avisoAccion, setAvisoAccion] = useState<{
     tipo: "ok" | "error";
     texto: string;
@@ -104,6 +108,34 @@ export function MarketingAdminUI({
   );
   const [estadoCupon, formCupon, cargandoCupon] = useActionState(
     accionCrearCupon,
+    ESTADO_INICIAL_MARKETING,
+  );
+  const [, formEditarPromo, cargandoEditPromo] = useActionState(
+    async (prev: typeof ESTADO_INICIAL_MARKETING, fd: FormData) => {
+      const res = await accionEditarPromocion(prev, fd);
+      if (res.ok) {
+        setEditandoPromoId(null);
+        setAvisoAccion({ tipo: "ok", texto: res.mensaje ?? "Promoción actualizada." });
+        router.refresh();
+      } else if (res.error) {
+        setAvisoAccion({ tipo: "error", texto: res.error });
+      }
+      return res;
+    },
+    ESTADO_INICIAL_MARKETING,
+  );
+  const [, formEditarCupon, cargandoEditCupon] = useActionState(
+    async (prev: typeof ESTADO_INICIAL_MARKETING, fd: FormData) => {
+      const res = await accionEditarCupon(prev, fd);
+      if (res.ok) {
+        setEditandoCuponId(null);
+        setAvisoAccion({ tipo: "ok", texto: res.mensaje ?? "Cupón actualizado." });
+        router.refresh();
+      } else if (res.error) {
+        setAvisoAccion({ tipo: "error", texto: res.error });
+      }
+      return res;
+    },
     ESTADO_INICIAL_MARKETING,
   );
 
@@ -405,6 +437,17 @@ export function MarketingAdminUI({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() =>
+                            setEditandoPromoId(
+                              editandoPromoId === promo.id ? null : promo.id,
+                            )
+                          }
+                          className="rounded border border-[#D9D9D9] px-3 py-1.5 text-xs font-semibold text-[#2C2C2C] transition-colors hover:bg-[#F5F5F5]"
+                        >
+                          {editandoPromoId === promo.id ? "Cerrar" : "Editar"}
+                        </button>
+                        <button
+                          type="button"
                           disabled={pendienteAccion}
                           onClick={() =>
                             ejecutarAccionRapida(() =>
@@ -430,6 +473,83 @@ export function MarketingAdminUI({
                           </button>
                         )}
                       </div>
+
+                      {editandoPromoId === promo.id && (
+                        <form
+                          action={formEditarPromo}
+                          className="mt-3 grid w-full gap-3 border-t border-[#EEEEEE] pt-3 sm:grid-cols-2 lg:grid-cols-4"
+                        >
+                          <input type="hidden" name="promocionId" value={promo.id} />
+                          <input type="hidden" name="activa" value={String(promo.activa)} />
+                          <div className="sm:col-span-2">
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Nombre
+                            </label>
+                            <input
+                              name="nombre"
+                              required
+                              defaultValue={promo.nombre}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Descuento (%)
+                            </label>
+                            <input
+                              name="porcentajeDescuento"
+                              type="number"
+                              min={1}
+                              max={90}
+                              required
+                              defaultValue={promo.porcentajeDescuento}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-1">
+                            <div>
+                              <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                                Inicio
+                              </label>
+                              <input
+                                name="fechaInicio"
+                                type="date"
+                                required
+                                defaultValue={promo.fechaInicioISO.slice(0, 10)}
+                                className={inputClass}
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                                Fin
+                              </label>
+                              <input
+                                name="fechaFin"
+                                type="date"
+                                required
+                                defaultValue={promo.fechaFinISO.slice(0, 10)}
+                                className={inputClass}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
+                            <button
+                              type="submit"
+                              disabled={cargandoEditPromo}
+                              className="rounded bg-[#CF1A1F] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#7C0300] disabled:opacity-60"
+                            >
+                              {cargandoEditPromo ? "Guardando..." : "Guardar cambios"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditandoPromoId(null)}
+                              className="rounded border border-[#D9D9D9] px-3 py-1.5 text-xs font-semibold text-[#6B6B6B]"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   );
                 })}
@@ -624,6 +744,17 @@ export function MarketingAdminUI({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() =>
+                            setEditandoCuponId(
+                              editandoCuponId === cupon.id ? null : cupon.id,
+                            )
+                          }
+                          className="rounded border border-[#D9D9D9] px-3 py-1.5 text-xs font-semibold text-[#2C2C2C] transition-colors hover:bg-[#F5F5F5]"
+                        >
+                          {editandoCuponId === cupon.id ? "Cerrar" : "Editar"}
+                        </button>
+                        <button
+                          type="button"
                           disabled={pendienteAccion}
                           onClick={() =>
                             ejecutarAccionRapida(() =>
@@ -649,6 +780,90 @@ export function MarketingAdminUI({
                           </button>
                         )}
                       </div>
+
+                      {editandoCuponId === cupon.id && (
+                        <form
+                          action={formEditarCupon}
+                          className="mt-3 grid w-full gap-3 border-t border-[#EEEEEE] pt-3 sm:grid-cols-2 lg:grid-cols-4"
+                        >
+                          <input type="hidden" name="cuponId" value={cupon.id} />
+                          <input type="hidden" name="activo" value={String(cupon.activo)} />
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Código
+                            </label>
+                            <input
+                              name="codigo"
+                              required
+                              defaultValue={cupon.codigo}
+                              className={`${inputClass} uppercase`}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Descuento (%)
+                            </label>
+                            <input
+                              name="porcentajeDescuento"
+                              type="number"
+                              min={1}
+                              max={90}
+                              required
+                              defaultValue={cupon.porcentajeDescuento}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Desde
+                            </label>
+                            <input
+                              name="fechaVigencia"
+                              type="date"
+                              required
+                              defaultValue={cupon.fechaVigenciaISO.slice(0, 10)}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Hasta (opcional)
+                            </label>
+                            <input
+                              name="fechaVigenciaFin"
+                              type="date"
+                              defaultValue={cupon.fechaVigenciaFinISO?.slice(0, 10) ?? ""}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <label className="mb-1 block text-xs font-semibold text-[#4E4E4E]">
+                              Descripción (opcional)
+                            </label>
+                            <input
+                              name="descripcion"
+                              defaultValue={cupon.descripcion ?? ""}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
+                            <button
+                              type="submit"
+                              disabled={cargandoEditCupon}
+                              className="rounded bg-[#CF1A1F] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#7C0300] disabled:opacity-60"
+                            >
+                              {cargandoEditCupon ? "Guardando..." : "Guardar cambios"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditandoCuponId(null)}
+                              className="rounded border border-[#D9D9D9] px-3 py-1.5 text-xs font-semibold text-[#6B6B6B]"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   );
                 })}

@@ -121,11 +121,6 @@ export function ProductoCatalogoCard({
                 </span>
               )}
             </div>
-            {ultimasUnidades && (
-              <p className="text-[12px] font-semibold leading-[16px] text-[#FF8F8F]">
-                ¡Últimas {producto.stockTotal} u.!
-              </p>
-            )}
           </div>
         </div>
       </Link>

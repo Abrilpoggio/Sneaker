@@ -305,18 +305,18 @@ export async function generarLibroExcelReportes(
     numFilaVentas++;
   }
 
-  // Fila de totales
+  // Fila de totales (coincide exactamente con Resumen Ejecutivo: solo ventas validas)
   if (pedidosDb.length > 0) {
     const filaTotal = hojaVentas.getRow(numFilaVentas);
-    filaTotal.getCell(1).value = "TOTALES";
+    filaTotal.getCell(1).value = "TOTALES (VENTAS VÁLIDAS)";
     filaTotal.getCell(1).font = { bold: true };
-    filaTotal.getCell(8).value = { formula: `SUM(H2:H${numFilaVentas - 1})` };
+    filaTotal.getCell(8).value = datos.kpis.facturacionBruta;
     filaTotal.getCell(8).numFmt = '"$"#,##0.00';
-    filaTotal.getCell(9).value = { formula: `SUM(I2:I${numFilaVentas - 1})` };
+    filaTotal.getCell(9).value = datos.kpis.totalDescuentos;
     filaTotal.getCell(9).numFmt = '"$"#,##0.00';
-    filaTotal.getCell(10).value = { formula: `SUM(J2:J${numFilaVentas - 1})` };
+    filaTotal.getCell(10).value = datos.kpis.totalEnvios;
     filaTotal.getCell(10).numFmt = '"$"#,##0.00';
-    filaTotal.getCell(11).value = { formula: `SUM(K2:K${numFilaVentas - 1})` };
+    filaTotal.getCell(11).value = datos.kpis.facturacionNeta;
     filaTotal.getCell(11).numFmt = '"$"#,##0.00';
     filaTotal.font = { bold: true };
 
@@ -349,9 +349,16 @@ export async function generarLibroExcelReportes(
   ];
   estilizarEncabezado(filaEncItems, COLOR_PRIMARIO);
 
+  const whereItemsPedido = whereClausula.estado
+    ? whereClausula
+    : {
+        ...whereClausula,
+        estado: { notIn: ["CANCELADO", "RECHAZADO", "PENDIENTE"] as ("CANCELADO" | "RECHAZADO" | "PENDIENTE")[] },
+      };
+
   const itemsDb = await prisma.itemPedido.findMany({
     where: {
-      pedido: whereClausula,
+      pedido: whereItemsPedido,
     },
     orderBy: { pedido: { fechaCreacion: "desc" } },
     include: {
@@ -615,6 +622,59 @@ export async function generarLibroExcelReportes(
   }
 
   ajustarAnchoColumnas(hojaInv, 12, 45);
+
+  // =========================================================================
+  // HOJA 6: VENTAS POR PERIODO (RF-47)
+  // =========================================================================
+  const hojaPeriodo = workbook.addWorksheet("Ventas por Periodo", {
+    views: [{ showGridLines: true, state: "frozen", ySplit: 1 }],
+  });
+
+  const filaEncPeriodo = hojaPeriodo.getRow(1);
+  filaEncPeriodo.values = [
+    "Fecha",
+    "Pedidos Validos",
+    "Unidades Vendidas",
+    "Facturacion Neta ($)",
+  ];
+  estilizarEncabezado(filaEncPeriodo, COLOR_PRIMARIO);
+
+  let numFilaPeriodo = 2;
+  for (const dia of datos.ventasPorPeriodo) {
+    const f = hojaPeriodo.getRow(numFilaPeriodo);
+    f.getCell(1).value = dia.fecha;
+    f.getCell(2).value = dia.pedidos;
+    f.getCell(2).numFmt = "#,##0";
+    f.getCell(3).value = dia.unidades;
+    f.getCell(3).numFmt = "#,##0";
+    f.getCell(4).value = dia.recaudacion;
+    f.getCell(4).numFmt = '"$"#,##0.00';
+    if (numFilaPeriodo % 2 === 0) {
+      for (let col = 1; col <= 4; col++) {
+        f.getCell(col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ZEBRA } };
+      }
+    }
+    for (let col = 1; col <= 4; col++) aplicarBordes(f.getCell(col));
+    numFilaPeriodo++;
+  }
+
+  if (datos.ventasPorPeriodo.length > 0) {
+    const fTotPer = hojaPeriodo.getRow(numFilaPeriodo);
+    fTotPer.getCell(1).value = "TOTALES";
+    fTotPer.getCell(2).value = { formula: `SUM(B2:B${numFilaPeriodo - 1})` };
+    fTotPer.getCell(2).numFmt = "#,##0";
+    fTotPer.getCell(3).value = { formula: `SUM(C2:C${numFilaPeriodo - 1})` };
+    fTotPer.getCell(3).numFmt = "#,##0";
+    fTotPer.getCell(4).value = { formula: `SUM(D2:D${numFilaPeriodo - 1})` };
+    fTotPer.getCell(4).numFmt = '"$"#,##0.00';
+    fTotPer.font = { bold: true };
+    for (let col = 1; col <= 4; col++) {
+      fTotPer.getCell(col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } };
+      aplicarBordes(fTotPer.getCell(col));
+    }
+  }
+
+  ajustarAnchoColumnas(hojaPeriodo, 14, 30);
 
   return await workbook.xlsx.writeBuffer();
 }

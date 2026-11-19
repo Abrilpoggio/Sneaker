@@ -91,40 +91,55 @@ export default async function ProductoAdminDetallePage({
         />
       </section>
 
-      <section className="flex flex-col gap-5 rounded-md border border-[#D9D9D9] p-5">
-        <header>
-          <h2 className="text-xl font-bold text-[#2C2C2C]">Variantes y stock</h2>
-          <p className="mt-1 text-sm text-[#6B6B6B]">Los ajustes de stock quedan registrados con responsable y motivo.</p>
-        </header>
+      {producto.kit ? (
+        <section className="flex flex-col gap-3 rounded-md border border-[#D9D9D9] bg-[#FAFAFA] p-5">
+          <h2 className="text-xl font-bold text-[#2C2C2C]">Composición y stock del kit</h2>
+          <p className="text-sm text-[#6B6B6B]">
+            Este producto es un kit: su stock disponible ({stockTotal} unidades) se calcula automáticamente a partir de sus {producto.kit.componentes.length} componentes.
+          </p>
+          <Link
+            href={`/admin/kits/${producto.id}`}
+            className="w-fit rounded bg-[#CF1A1F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#7C0300]"
+          >
+            Administrar componentes del kit →
+          </Link>
+        </section>
+      ) : (
+        <section className="flex flex-col gap-5 rounded-md border border-[#D9D9D9] p-5">
+          <header>
+            <h2 className="text-xl font-bold text-[#2C2C2C]">Variantes y stock</h2>
+            <p className="mt-1 text-sm text-[#6B6B6B]">Los ajustes de stock quedan registrados con responsable y motivo.</p>
+          </header>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[650px] border-collapse text-left text-sm">
-            <thead className="bg-[#2C2C2C] text-white">
-              <tr>
-                <th className="px-3 py-3">Talle</th><th className="px-3 py-3">Color</th><th className="px-3 py-3">Material</th><th className="px-3 py-3">Stock</th><th className="px-3 py-3">Historial</th><th className="px-3 py-3">Eliminar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {producto.variantes.map((v) => (
-                <tr key={v.id} className="border-t border-[#D9D9D9] align-top odd:bg-white even:bg-[#FAFAFA]">
-                  <td colSpan={6} className="p-3">
-                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-[#6B6B6B] md:grid-cols-6">
-                      <span>{v.talle ?? "—"}</span><span>{v.color ?? "—"}</span><span>{v.material ?? "—"}</span><span className="font-bold text-[#2C2C2C]">{v.stockActual} un.</span><span>{v._count.movimientos} mov.</span>
-                      <EliminarVarianteButton productoId={producto.id} varianteId={v.id} />
-                    </div>
-                    <VarianteForm productoId={producto.id} variante={{ id: v.id, talle: v.talle, color: v.color, material: v.material, stockActual: v.stockActual }} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[650px] border-collapse text-left text-sm">
+              <thead className="bg-[#2C2C2C] text-white">
+                <tr>
+                  <th className="px-3 py-3">Talle</th><th className="px-3 py-3">Color</th><th className="px-3 py-3">Material</th><th className="px-3 py-3">Stock</th><th className="px-3 py-3">Historial</th><th className="px-3 py-3">Eliminar</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {producto.variantes.map((v) => (
+                  <tr key={v.id} className="border-t border-[#D9D9D9] align-top odd:bg-white even:bg-[#FAFAFA]">
+                    <td colSpan={6} className="p-3">
+                      <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-[#6B6B6B] md:grid-cols-6">
+                        <span>{v.talle ?? "—"}</span><span>{v.color ?? "—"}</span><span>{v.material ?? "—"}</span><span className="font-bold text-[#2C2C2C]">{v.stockActual} un.</span><span>{v._count.movimientos} mov.</span>
+                        <EliminarVarianteButton productoId={producto.id} varianteId={v.id} />
+                      </div>
+                      <VarianteForm productoId={producto.id} variante={{ id: v.id, talle: v.talle, color: v.color, material: v.material, stockActual: v.stockActual }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        <details className="rounded-md border border-[#D9D9D9] p-4">
-          <summary className="cursor-pointer font-semibold text-[#CF1A1F]">+ Agregar variante</summary>
-          <div className="mt-4"><VarianteForm productoId={producto.id} /></div>
-        </details>
-      </section>
+          <details className="rounded-md border border-[#D9D9D9] p-4">
+            <summary className="cursor-pointer font-semibold text-[#CF1A1F]">+ Agregar variante</summary>
+            <div className="mt-4"><VarianteForm productoId={producto.id} /></div>
+          </details>
+        </section>
+      )}
     </div>
   );
 }

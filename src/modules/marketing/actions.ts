@@ -117,6 +117,54 @@ export async function accionCrearPromocion(
 }
 
 /**
+ * RF-41: Edicion de promocion existente (nombre, porcentaje, fechas y estado).
+ */
+export async function accionEditarPromocion(
+  _prev: EstadoAccionMarketing,
+  formData: FormData,
+): Promise<EstadoAccionMarketing> {
+  await requireAdmin();
+
+  const promocionId = String(formData.get("promocionId") ?? "").trim();
+  if (!promocionId) {
+    return { ok: false, error: "Promoción no especificada." };
+  }
+
+  const parsed = crearPromocionSchema.safeParse({
+    nombre: String(formData.get("nombre") ?? ""),
+    porcentajeDescuento: String(formData.get("porcentajeDescuento") ?? ""),
+    fechaInicio: String(formData.get("fechaInicio") ?? ""),
+    fechaFin: String(formData.get("fechaFin") ?? ""),
+    activa: formData.get("activa") !== "false",
+    productoIds: [],
+  });
+
+  if (!parsed.success) {
+    return erroresDeZod(parsed.error);
+  }
+
+  try {
+    await prisma.promocion.update({
+      where: { id: promocionId },
+      data: {
+        nombre: parsed.data.nombre,
+        porcentajeDescuento: new Prisma.Decimal(parsed.data.porcentajeDescuento),
+        fechaInicio: parsearInicioDia(parsed.data.fechaInicio),
+        fechaFin: parsearFinDia(parsed.data.fechaFin),
+        activa: parsed.data.activa,
+      },
+    });
+    revalidarMarketing();
+    return {
+      ok: true,
+      mensaje: `Promoción "${parsed.data.nombre}" actualizada.`,
+    };
+  } catch {
+    return { ok: false, error: "No pudimos actualizar la promoción." };
+  }
+}
+
+/**
  * RF-41: Activar o desactivar una promocion existente.
  */
 export async function accionAlternarPromocion(
@@ -137,6 +185,66 @@ export async function accionAlternarPromocion(
     };
   } catch {
     return { ok: false, error: "No pudimos actualizar la promoción." };
+  }
+}
+
+/**
+ * RF-42: Edicion de cupon existente (codigo, porcentaje, fechas, descripcion y estado).
+ */
+export async function accionEditarCupon(
+  _prev: EstadoAccionMarketing,
+  formData: FormData,
+): Promise<EstadoAccionMarketing> {
+  await requireAdmin();
+
+  const cuponId = String(formData.get("cuponId") ?? "").trim();
+  if (!cuponId) {
+    return { ok: false, error: "Cupón no especificado." };
+  }
+
+  const parsed = crearCuponSchema.safeParse({
+    codigo: String(formData.get("codigo") ?? ""),
+    porcentajeDescuento: String(formData.get("porcentajeDescuento") ?? ""),
+    fechaVigencia: String(formData.get("fechaVigencia") ?? ""),
+    fechaVigenciaFin: String(formData.get("fechaVigenciaFin") ?? ""),
+    descripcion: String(formData.get("descripcion") ?? ""),
+    activo: formData.get("activo") !== "false",
+  });
+
+  if (!parsed.success) {
+    return erroresDeZod(parsed.error);
+  }
+
+  try {
+    await prisma.cupon.update({
+      where: { id: cuponId },
+      data: {
+        codigo: parsed.data.codigo,
+        porcentajeDescuento: new Prisma.Decimal(parsed.data.porcentajeDescuento),
+        fechaVigencia: parsearInicioDia(parsed.data.fechaVigencia),
+        fechaVigenciaFin: parsed.data.fechaVigenciaFin
+          ? parsearFinDia(parsed.data.fechaVigenciaFin)
+          : null,
+        descripcion: parsed.data.descripcion || null,
+        activo: parsed.data.activo,
+      },
+    });
+    revalidarMarketing();
+    return {
+      ok: true,
+      mensaje: `Cupón "${parsed.data.codigo}" actualizado.`,
+    };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        error: `Ya existe otro cupón con el código "${parsed.data.codigo}".`,
+      };
+    }
+    return { ok: false, error: "No pudimos actualizar el cupón." };
   }
 }
 

@@ -291,6 +291,10 @@ export async function listarPedidosCliente(clienteId: string) {
  * agotada, agrega lo disponible e informa el detalle al comprador.
  */
 export async function repetirPedidoAnterior(clienteId: string, pedidoId: string) {
+  const { disponibilidadKit, disponibilidadPorVariante } = await import(
+    "@/modules/carrito/services/disponibilidad"
+  );
+
   const pedido = await prisma.pedido.findFirst({
     where: { id: pedidoId, clienteId },
     include: {
@@ -304,6 +308,20 @@ export async function repetirPedidoAnterior(clienteId: string, pedidoId: string)
                   precioVenta: true,
                   estado: true,
                 },
+              },
+            },
+          },
+          kit: {
+            include: {
+              producto: {
+                select: {
+                  nombre: true,
+                  precioVenta: true,
+                  estado: true,
+                },
+              },
+              componentes: {
+                select: { varianteId: true, cantidad: true },
               },
             },
           },
@@ -326,14 +344,81 @@ export async function repetirPedidoAnterior(clienteId: string, pedidoId: string)
       create: { clienteId },
     });
 
+    if (carrito.reservaExpiracion && carrito.reservaExpiracion > new Date()) {
+      throw new ErrorNegocioPedido(
+        "CARRITO_RESERVADO",
+        "Tenés una reserva activa en tu carrito. Cancelala o completá tu compra actual antes de repetir otro pedido.",
+      );
+    }
+
+    // Calcular disponibilidad real descontando reservas vigentes de otros clientes
+    const variantesIds = new Set<string>();
     for (const item of pedido.items) {
+      if (item.varianteProductoId) variantesIds.add(item.varianteProductoId);
+      for (const comp of item.kit?.componentes ?? []) {
+        variantesIds.add(comp.varianteId);
+      }
+    }
+    const dispMapa = await disponibilidadPorVariante(tx, [...variantesIds], carrito.id);
+
+    for (const item of pedido.items) {
+      // Caso 1: Kit (RF-38 / RF-39)
+      if (item.kitProductoId && item.kit) {
+        const kit = item.kit;
+        const stockKit = disponibilidadKit(kit.componentes, dispMapa);
+        if (kit.producto.estado !== "ACTIVO" || stockKit <= 0) {
+          sinStock.push(item.nombreProductoSnapshot);
+          continue;
+        }
+
+        const existente = await tx.itemCarrito.findUnique({
+          where: {
+            carritoId_kitProductoId: {
+              carritoId: carrito.id,
+              kitProductoId: kit.productoId,
+            },
+          },
+        });
+        const cantidadActual = existente?.cantidad ?? 0;
+        const nuevaCantidad = Math.min(cantidadActual + item.cantidad, stockKit);
+
+        if (nuevaCantidad <= cantidadActual) {
+          sinStock.push(item.nombreProductoSnapshot);
+          continue;
+        }
+
+        await tx.itemCarrito.upsert({
+          where: {
+            carritoId_kitProductoId: {
+              carritoId: carrito.id,
+              kitProductoId: kit.productoId,
+            },
+          },
+          update: {
+            cantidad: nuevaCantidad,
+            precioUnitario: kit.producto.precioVenta,
+          },
+          create: {
+            carritoId: carrito.id,
+            kitProductoId: kit.productoId,
+            cantidad: nuevaCantidad,
+            precioUnitario: kit.producto.precioVenta,
+          },
+        });
+
+        agregados += 1;
+        continue;
+      }
+
+      // Caso 2: Variante regular
       const variante = item.varianteProducto;
       if (!variante) {
         sinStock.push(item.nombreProductoSnapshot);
         continue;
       }
-      if (variante.producto.estado !== "ACTIVO" || variante.stockActual <= 0) {
-        sinStock.push(`${item.nombreProductoSnapshot} (${variante.talle} · ${variante.color})`);
+      const stockDisp = dispMapa.get(variante.id) ?? 0;
+      if (variante.producto.estado !== "ACTIVO" || stockDisp <= 0) {
+        sinStock.push(`${item.nombreProductoSnapshot} (${variante.talle ?? "Único"} · ${variante.color ?? "-"})`);
         continue;
       }
 
@@ -347,10 +432,10 @@ export async function repetirPedidoAnterior(clienteId: string, pedidoId: string)
       });
 
       const cantidadActual = existente?.cantidad ?? 0;
-      const nuevaCantidad = Math.min(cantidadActual + item.cantidad, variante.stockActual);
+      const nuevaCantidad = Math.min(cantidadActual + item.cantidad, stockDisp);
 
       if (nuevaCantidad <= cantidadActual) {
-        sinStock.push(`${item.nombreProductoSnapshot} (${variante.talle} · ${variante.color})`);
+        sinStock.push(`${item.nombreProductoSnapshot} (${variante.talle ?? "Único"} · ${variante.color ?? "-"})`);
         continue;
       }
 

@@ -407,13 +407,24 @@ function renderDesdeBase(
 
           <div className="flex flex-col gap-2">
             <p className="text-xl font-light leading-[24px] text-black">Medios de pago:</p>
-            <p className="text-base font-light leading-[22px] text-black">
-              {garantia ? `Garantía: ${garantia}` : "Sin garantía registrada"}
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded border border-[#009EE3]/40 bg-[#EBF7FD] px-2.5 py-1 text-xs font-semibold text-[#0073A8]">
+                Mercado Pago
+              </span>
+              <span className="rounded border border-[#D9D9D9] bg-[#FAFAFA] px-2.5 py-1 text-xs font-medium text-[#2C2C2C]">
+                Tarjetas de crédito y débito
+              </span>
+              <span className="rounded border border-[#D9D9D9] bg-[#FAFAFA] px-2.5 py-1 text-xs font-medium text-[#2C2C2C]">
+                Dinero en cuenta / QR
+              </span>
+            </div>
+            <p className="mt-1 text-base font-light leading-[22px] text-black">
+              {garantia ? `Garantía: ${garantia}` : "Garantía oficial Sneaker"}
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-base font-medium leading-[16px] text-black">Etiquetas</p>
+            <p className="text-base font-medium leading-[16px] text-black">Etiquetas de uso</p>
             <div className="flex flex-wrap gap-2">
               {etiquetas.length ? (
                 etiquetas.map((e) => (
@@ -435,7 +446,7 @@ function renderDesdeBase(
           <p className="text-base text-[#6B6B6B]">
             {variantesVista.length > 0
               ? "Elegí una variante y agregala al carrito. Al comprar, tus productos quedan reservados durante 1 a 2 minutos."
-              : "El kit se agrega al carrito como una unidad y descuenta el stock de cada componente (RN-06)."}
+              : "El kit se agrega al carrito como una unidad y descuenta automáticamente el stock de cada componente."}
           </p>
 
           <p className="text-sm text-[#9E9E9E]">
@@ -447,14 +458,6 @@ function renderDesdeBase(
           </p>
         </div>
       </div>
-
-      <section aria-label="Etiquetas de uso" className="flex flex-wrap gap-4">
-        {etiquetas.map((e) => (
-          <span key={e} className="text-base font-medium leading-[16px] text-black">
-            {e}
-          </span>
-        ))}
-      </section>
 
       <div className="grid gap-10 lg:grid-cols-2">
         <section aria-label="Descripcion">

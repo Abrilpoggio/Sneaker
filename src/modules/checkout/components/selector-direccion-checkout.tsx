@@ -125,7 +125,7 @@ export function SelectorDireccionCheckout({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#9E9E9E]">
-            Dirección de envío (RF-18)
+            Dirección de envío
           </p>
           <p className="text-sm text-[#6B6B6B]">
             Elegí una dirección guardada ({direcciones.length}/

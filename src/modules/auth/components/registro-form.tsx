@@ -16,7 +16,10 @@ interface Props {
   googleHabilitado?: boolean;
 }
 
-export function RegistroForm({ callbackUrl = "/" }: Props) {
+export function RegistroForm({
+  callbackUrl = "/",
+  googleHabilitado = false,
+}: Props) {
   const [estado, formAction, pendiente] = useActionState(
     accionRegistrar,
     estadoInicial,
@@ -131,20 +134,24 @@ export function RegistroForm({ callbackUrl = "/" }: Props) {
         </button>
       </form>
 
-      {/* Separador blanco (Vector 1: 371px, 2px) */}
-      <div className="mt-[20px] h-[2px] w-full max-w-[371px] bg-white" />
+      {googleHabilitado && (
+        <>
+          {/* Separador blanco (Vector 1: 371px, 2px) */}
+          <div className="mt-[20px] h-[2px] w-full max-w-[371px] bg-white" />
 
-      {/* Boton Ingresar con gmail (Frame 101: 241 x 54, radio 40px, #FFFFFF) */}
-      <button
-        type="button"
-        onClick={() => void signIn("google", { callbackUrl })}
-        className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
-      >
-        <GoogleIcon />
-        <span className="text-[16px] font-semibold leading-[19px] text-black">
-          Ingresar con gmail
-        </span>
-      </button>
+          {/* Boton Ingresar con Google (Frame 101: 241 x 54, radio 40px, #FFFFFF) */}
+          <button
+            type="button"
+            onClick={() => void signIn("google", { callbackUrl })}
+            className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
+          >
+            <GoogleIcon />
+            <span className="text-[16px] font-semibold leading-[19px] text-black">
+              Ingresar con Google
+            </span>
+          </button>
+        </>
+      )}
     </div>
   );
 }

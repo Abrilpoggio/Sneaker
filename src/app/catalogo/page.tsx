@@ -132,7 +132,7 @@ export default async function CatalogoPage({
             )}
           </div>
 
-          <form method="get" className="flex flex-col gap-4">
+          <form key={JSON.stringify(filtros)} method="get" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="filtro-q"

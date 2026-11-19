@@ -251,14 +251,25 @@ function construirWhere(filtros: FiltrosCatalogo): Prisma.ProductoWhereInput {
       etiquetas: { some: { etiqueta: { is: { slug: filtros.etiqueta } } } },
     });
   }
-  if (filtros.talle) {
-    condiciones.push({ variantes: { some: { talle: filtros.talle } } });
+  const filtroVariante: Prisma.VarianteProductoWhereInput = {};
+  if (filtros.talle) filtroVariante.talle = filtros.talle;
+  if (filtros.color) filtroVariante.color = filtros.color;
+  if (filtros.material) filtroVariante.material = filtros.material;
+  if (filtros.disponibilidad === "con-stock") {
+    filtroVariante.stockActual = { gt: 0 };
   }
-  if (filtros.color) {
-    condiciones.push({ variantes: { some: { color: filtros.color } } });
-  }
-  if (filtros.material) {
-    condiciones.push({ variantes: { some: { material: filtros.material } } });
+  if (Object.keys(filtroVariante).length > 0) {
+    // Si solo se filtro por con-stock sin atributos de variante, permitir tambien Kits con componentes en stock
+    if (
+      !filtros.talle &&
+      !filtros.color &&
+      !filtros.material &&
+      filtros.disponibilidad === "con-stock"
+    ) {
+      // El filtro de disponibilidad general se aplica luego sobre stockTotal > 0 (incluye Kits)
+    } else {
+      condiciones.push({ variantes: { some: filtroVariante } });
+    }
   }
 
   return { AND: condiciones };

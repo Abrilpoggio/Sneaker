@@ -15,14 +15,16 @@ function BotonConEstado({
   children,
   className,
   pendienteTexto = "Procesando...",
+  disabled,
 }: {
   children: React.ReactNode;
   className?: string;
   pendienteTexto?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={className}>
+    <button type="submit" disabled={pending || disabled} className={className}>
       {pending ? pendienteTexto : children}
     </button>
   );
@@ -116,19 +118,22 @@ export function FormularioCupon({
 export function BotonPagar({
   accion,
   modo,
+  disabled,
 }: {
   accion: (prev: EstadoAccionCheckout, formData: FormData) => Promise<EstadoAccionCheckout>;
   modo: "REAL" | "SIMULADO";
+  disabled?: boolean;
 }) {
   const [estado, formAction] = useActionState(accion, ESTADO_INICIAL_CHECKOUT);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <BotonConEstado
+        disabled={disabled}
         className={
           modo === "REAL"
-            ? "inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD] disabled:cursor-not-allowed disabled:opacity-60"
-            : "rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-60"
+            ? "inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD] disabled:cursor-not-allowed disabled:opacity-50"
+            : "rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-50"
         }
         pendienteTexto={modo === "REAL" ? "Redirigiendo a Mercado Pago..." : "Confirmando pedido..."}
       >
@@ -145,15 +150,18 @@ export function BotonPagar({
  */
 export function BotonPagoRechazado({
   accion,
+  disabled,
 }: {
   accion: (prev: EstadoAccionCheckout, formData: FormData) => Promise<EstadoAccionCheckout>;
+  disabled?: boolean;
 }) {
   const [estado, formAction] = useActionState(accion, ESTADO_INICIAL_CHECKOUT);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <BotonConEstado
-        className="rounded-md border border-[#2C2C2C] px-6 py-3 text-lg font-medium leading-[16px] text-[#2C2C2C] transition-opacity hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={disabled}
+        className="rounded-md border border-[#2C2C2C] px-6 py-3 text-lg font-medium leading-[16px] text-[#2C2C2C] transition-opacity hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
         pendienteTexto="Procesando rechazo..."
       >
         Simular pago rechazado

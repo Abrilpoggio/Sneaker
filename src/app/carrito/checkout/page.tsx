@@ -18,6 +18,8 @@ import {
 import { resumenCheckout, leerCuponGuardado } from "@/modules/checkout/services/checkout";
 import { accionAplicarCupon, accionQuitarCupon } from "@/modules/checkout/actions";
 import { obtenerEstadoCarrito, resolverComprador } from "@/modules/carrito/services/carrito";
+import { accionCancelarReserva } from "@/modules/carrito/actions";
+import { BotonCancelarReserva } from "@/modules/carrito/components/controles";
 import { CountdownReserva } from "@/modules/carrito/components/countdown";
 import { formatoPrecio } from "@/modules/catalogo/productos";
 import { listarDireccionesCliente } from "@/modules/clients/services/direcciones";
@@ -68,6 +70,7 @@ export default async function CheckoutPage() {
 
   const conReservaVigente = resumen.reservaActiva;
   const conBloqueos = carrito.items.some((item) => item.faltante > 0 || !item.productoActivo);
+  const pagoDeshabilitado = !conReservaVigente || conBloqueos || !direccion;
 
   return (
     <div className="mx-auto flex w-full max-w-[1287px] flex-col gap-6 px-4 py-10">
@@ -77,15 +80,21 @@ export default async function CheckoutPage() {
       </header>
 
       {conReservaVigente ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-base font-semibold leading-[16px] text-[#7C0300]">
-            Tus productos quedaron reservados. Completá el pago antes de que expire la reserva.
-          </p>
-          {carrito.reservaExpiracion && (
-            <div>
-              <CountdownReserva expiracionISO={carrito.reservaExpiracion.toISOString()} />
-            </div>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#F5C6CB] bg-[#FFF5F5] px-4 py-3">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-base font-semibold leading-[16px] text-[#7C0300]">
+              Tus productos quedaron reservados. Completá el pago antes de que expire la reserva.
+            </p>
+            {carrito.reservaExpiracion && (
+              <div>
+                <CountdownReserva expiracionISO={carrito.reservaExpiracion.toISOString()} />
+              </div>
+            )}
+          </div>
+          <BotonCancelarReserva
+            accion={accionCancelarReserva}
+            className="rounded border border-[#7C0300] bg-white px-4 py-2 text-sm font-semibold text-[#7C0300] transition-colors hover:bg-[#FFEBEE]"
+          />
         </div>
       ) : (
         <div className="rounded-md border border-[#CF1A1F] bg-[#FFCDD2] px-4 py-3">
@@ -205,22 +214,44 @@ export default async function CheckoutPage() {
 
       <div className="flex flex-wrap items-center gap-4">
         {modoPago === "REAL" ? (
-          <BotonPagar accion={accionPagar} modo={modoPago} />
+          <BotonPagar accion={accionPagar} modo={modoPago} disabled={pagoDeshabilitado} />
         ) : (
           <>
-            <Link
-              href="/carrito/checkout/mercadopago"
-              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD]"
-            >
-              <span>Pagar con Mercado Pago</span>
-              <span className="rounded bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                Checkout Pro
-              </span>
-            </Link>
-            <BotonPagoRechazado accion={accionPagarRechazado} />
+            {pagoDeshabilitado ? (
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-12 cursor-not-allowed items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white opacity-50 shadow-sm"
+              >
+                <span>Pagar con Mercado Pago</span>
+                <span className="rounded bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                  Checkout Pro
+                </span>
+              </button>
+            ) : (
+              <Link
+                href="/carrito/checkout/mercadopago"
+                className="inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD]"
+              >
+                <span>Pagar con Mercado Pago</span>
+                <span className="rounded bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                  Checkout Pro
+                </span>
+              </Link>
+            )}
+            <BotonPagoRechazado
+              accion={accionPagarRechazado}
+              disabled={pagoDeshabilitado}
+            />
           </>
         )}
       </div>
+
+      {!direccion && conReservaVigente && (
+        <p className="text-sm font-semibold text-[#CF1A1F]">
+          Cargá o seleccioná una dirección de envío arriba para habilitar el pago.
+        </p>
+      )}
 
       <p className="text-sm text-[#6B6B6B]">
         {modoPago === "REAL"

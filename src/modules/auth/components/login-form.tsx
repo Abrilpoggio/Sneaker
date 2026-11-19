@@ -8,7 +8,7 @@ import {
   accionIniciarSesion,
   type EstadoFormulario,
 } from "@/modules/auth/actions";
-import { AuthCheckbox, GoogleIcon } from "./auth-shell";
+import { GoogleIcon } from "./auth-shell";
 
 const estadoInicial: EstadoFormulario = {};
 
@@ -18,7 +18,11 @@ interface Props {
   mensajeExito?: string;
 }
 
-export function LoginForm({ callbackUrl, mensajeExito }: Props) {
+export function LoginForm({
+  callbackUrl,
+  googleHabilitado = false,
+  mensajeExito,
+}: Props) {
   const router = useRouter();
   const { update } = useSesion();
   const [estado, formAction, pendiente] = useActionState(
@@ -117,35 +121,34 @@ export function LoginForm({ callbackUrl, mensajeExito }: Props) {
           </div>
         </div>
 
-        {/* Checkbox Recordarme (Frame 89: gap 6px, 13x13 #D9D9D9, radio 2px) */}
-        <div className="mt-[14px] w-full max-w-[328px]">
-          <AuthCheckbox name="recordarme" label="Recordarme" />
-        </div>
-
         {/* Boton Ingresar (Frame 10: 115 x 44, #2C2C2C, radio 9px) */}
         <button
           type="submit"
           disabled={cargando}
-          className="mt-[18px] flex h-[44px] w-[115px] items-center justify-center rounded-[9px] bg-[#2C2C2C] text-[24px] font-normal leading-[29px] text-white shadow-[6px_5px_6.5px_rgba(0,0,0,0.25),inset_0_4px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="mt-[22px] flex h-[44px] w-[115px] items-center justify-center rounded-[9px] bg-[#2C2C2C] text-[24px] font-normal leading-[29px] text-white shadow-[6px_5px_6.5px_rgba(0,0,0,0.25),inset_0_4px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {cargando ? "..." : "Ingresar"}
         </button>
       </form>
 
-      {/* Separador blanco (Line 10: 371px, 2px) */}
-      <div className="mt-[20px] h-[2px] w-full max-w-[371px] bg-white" />
+      {googleHabilitado && (
+        <>
+          {/* Separador blanco (Line 10: 371px, 2px) */}
+          <div className="mt-[20px] h-[2px] w-full max-w-[371px] bg-white" />
 
-      {/* Boton Ingresar con gmail (Frame 100: 241 x 54, radio 40px, #FFFFFF) */}
-      <button
-        type="button"
-        onClick={() => void signIn("google", { callbackUrl })}
-        className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
-      >
-        <GoogleIcon />
-        <span className="text-[16px] font-semibold leading-[19px] text-black">
-          Ingresar con gmail
-        </span>
-      </button>
+          {/* Boton Ingresar con Google (Frame 100: 241 x 54, radio 40px, #FFFFFF) */}
+          <button
+            type="button"
+            onClick={() => void signIn("google", { callbackUrl })}
+            className="mt-[20px] flex h-[54px] w-[241px] items-center justify-center gap-[10px] rounded-[40px] bg-white px-5 shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-95"
+          >
+            <GoogleIcon />
+            <span className="text-[16px] font-semibold leading-[19px] text-black">
+              Ingresar con Google
+            </span>
+          </button>
+        </>
+      )}
     </div>
   );
 }

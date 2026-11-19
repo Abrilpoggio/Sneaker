@@ -254,68 +254,83 @@ export async function obtenerEstadisticasCompletas(
   const metodosPagoMap = new Map<string, { cantidad: number; monto: number }>();
   const provinciasMap = new Map<string, { pedidos: number; recaudacion: number }>();
 
+  let pedidosValidosCount = 0;
+
   for (const p of pedidos) {
     const total = Number(p.montoTotal);
     const subtotal = Number(p.montoSubtotal);
     const descuento = Number(p.descuentoTotal);
     const envio = Number(p.costoEnvio);
 
-    facturacionBruta += subtotal;
-    totalDescuentos += descuento;
-    totalEnvios += envio;
+    const esValido =
+      p.estado !== EstadoPedido.CANCELADO &&
+      p.estado !== EstadoPedido.RECHAZADO &&
+      p.estado !== EstadoPedido.PENDIENTE;
 
-    const esValido = p.estado !== EstadoPedido.CANCELADO && p.estado !== EstadoPedido.RECHAZADO;
     if (esValido) {
+      pedidosValidosCount++;
+      facturacionBruta += subtotal;
+      totalDescuentos += descuento;
+      totalEnvios += envio;
       facturacionNeta += total;
     }
 
     if (p.estado === EstadoPedido.RECIBIDO) pedidosCompletados++;
     if (p.estado === EstadoPedido.CANCELADO || p.estado === EstadoPedido.RECHAZADO) pedidosCancelados++;
 
-    // Estados
+    // Estados (siempre muestra todos para auditoria completa)
     const estadoActual = estadosMap.get(p.estado) ?? { cantidad: 0, monto: 0 };
     estadoActual.cantidad++;
     estadoActual.monto += total;
     estadosMap.set(p.estado, estadoActual);
 
-    // Metodos de pago
-    const metodo = p.metodoPago || "Sin especificar";
-    const metodoActual = metodosPagoMap.get(metodo) ?? { cantidad: 0, monto: 0 };
-    metodoActual.cantidad++;
-    metodoActual.monto += total;
-    metodosPagoMap.set(metodo, metodoActual);
+    // Metodos de pago (solo ventas validas)
+    if (esValido) {
+      const metodo = p.metodoPago || "Sin especificar";
+      const metodoActual = metodosPagoMap.get(metodo) ?? { cantidad: 0, monto: 0 };
+      metodoActual.cantidad++;
+      metodoActual.monto += total;
+      metodosPagoMap.set(metodo, metodoActual);
+    }
 
     // Provincias
     const datosEnvio = p.datosEnvio as { provincia?: string; ciudad?: string } | null;
     const provincia = datosEnvio?.provincia || "No informada";
-    const provActual = provinciasMap.get(provincia) ?? { pedidos: 0, recaudacion: 0 };
-    provActual.pedidos++;
-    if (esValido) provActual.recaudacion += total;
-    provinciasMap.set(provincia, provActual);
+    if (esValido) {
+      const provActual = provinciasMap.get(provincia) ?? { pedidos: 0, recaudacion: 0 };
+      provActual.pedidos++;
+      provActual.recaudacion += total;
+      provinciasMap.set(provincia, provActual);
+    }
 
-    // Ventas por periodo (diario)
+    // Ventas por periodo (diario - solo ventas validas)
     const fechaClave = p.fechaCreacion.toISOString().slice(0, 10);
-    const diaActual = pedidosPorFechaMap.get(fechaClave) ?? { pedidos: 0, recaudacion: 0, unidades: 0 };
-    diaActual.pedidos++;
-    if (esValido) diaActual.recaudacion += total;
+    const diaActual = esValido
+      ? (pedidosPorFechaMap.get(fechaClave) ?? { pedidos: 0, recaudacion: 0, unidades: 0 })
+      : null;
+    if (diaActual) {
+      diaActual.pedidos++;
+      diaActual.recaudacion += total;
+    }
 
     // Items y clientes
     let unidadesEnEstePedido = 0;
     for (const item of p.items) {
       const cantidad = item.cantidad;
       const sub = Number(item.subtotal);
-      diaActual.unidades += cantidad;
       unidadesEnEstePedido += cantidad;
-      if (esValido) unidadesVendidasTotales += cantidad;
-
-      // Top Productos
-      const sku = item.skuSnapshot;
-      const nombre = item.varianteProducto?.producto?.nombre || item.kit?.producto?.nombre || item.nombreProductoSnapshot;
-      const categoria = item.varianteProducto?.producto?.categoria?.nombre || item.kit?.producto?.categoria?.nombre || "General";
-      const marca = item.varianteProducto?.producto?.marca?.nombre || item.kit?.producto?.marca?.nombre || "Sneaker";
-      const precioVenta = Number(item.precioUnitario);
 
       if (esValido) {
+        unidadesVendidasTotales += cantidad;
+        if (diaActual) diaActual.unidades += cantidad;
+
+        // Top Productos
+        const sku = item.skuSnapshot;
+        const nombre = item.varianteProducto?.producto?.nombre || item.kit?.producto?.nombre || item.nombreProductoSnapshot;
+        const categoria = item.varianteProducto?.producto?.categoria?.nombre || item.kit?.producto?.categoria?.nombre || "General";
+        const marca = item.varianteProducto?.producto?.marca?.nombre || item.kit?.producto?.marca?.nombre || "Sneaker";
+        const precioVenta = Number(item.precioUnitario);
+
         const prodActual = productosMap.get(sku) ?? {
           sku,
           nombre,
@@ -342,37 +357,37 @@ export async function obtenerEstadisticasCompletas(
         marcasMap.set(marca, marcaActual);
       }
     }
-    pedidosPorFechaMap.set(fechaClave, diaActual);
+    if (diaActual) {
+      pedidosPorFechaMap.set(fechaClave, diaActual);
+    }
 
-    // Ranking de clientes
-    const clienteKey = p.clienteId;
-    const clActual = clientesMap.get(clienteKey) ?? {
-      clienteId: clienteKey,
-      nombreCompleto: `${p.cliente.nombre} ${p.cliente.apellido}`,
-      correo: p.cliente.usuario.correo,
-      dni: p.cliente.dni,
-      ciudad: datosEnvio?.ciudad || "-",
-      provincia: datosEnvio?.provincia || "-",
-      totalPedidos: 0,
-      unidadesCompradas: 0,
-      totalGastado: 0,
-      ultimoPedido: p.fechaCreacion,
-    };
-    clActual.totalPedidos++;
+    // Ranking de clientes (solo ventas validas)
     if (esValido) {
+      const clienteKey = p.clienteId;
+      const clActual = clientesMap.get(clienteKey) ?? {
+        clienteId: clienteKey,
+        nombreCompleto: `${p.cliente.nombre} ${p.cliente.apellido}`,
+        correo: p.cliente.usuario.correo,
+        dni: p.cliente.dni,
+        ciudad: datosEnvio?.ciudad || "-",
+        provincia: datosEnvio?.provincia || "-",
+        totalPedidos: 0,
+        unidadesCompradas: 0,
+        totalGastado: 0,
+        ultimoPedido: p.fechaCreacion,
+      };
+      clActual.totalPedidos++;
       clActual.unidadesCompradas += unidadesEnEstePedido;
       clActual.totalGastado += total;
+      if (p.fechaCreacion > clActual.ultimoPedido) {
+        clActual.ultimoPedido = p.fechaCreacion;
+      }
+      clientesMap.set(clienteKey, clActual);
     }
-    if (p.fechaCreacion > clActual.ultimoPedido) {
-      clActual.ultimoPedido = p.fechaCreacion;
-    }
-    clientesMap.set(clienteKey, clActual);
   }
 
   const ticketPromedio =
-    pedidos.length - pedidosCancelados > 0
-      ? facturacionNeta / (pedidos.length - pedidosCancelados)
-      : 0;
+    pedidosValidosCount > 0 ? facturacionNeta / pedidosValidosCount : 0;
 
   const kpis: KpisVentas = {
     totalPedidos: pedidos.length,

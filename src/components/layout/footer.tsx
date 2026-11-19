@@ -18,7 +18,7 @@ import {
  * renderiza porque `Vista 5: Autenticacion` en Figma ocupa el alto completo sin pie.
  */
 
-const CATEGORIAS = ["Urbanas", "Deportivas", "Medias", "Accesorios"];
+const CATEGORIAS = ["Urbanas", "Deportivas", "Medias", "Accesorios", "Kits"];
 const CONTACTOS = [
   { label: "WhatsApp", href: enlaceWhatsappGeneral() },
   { label: "Instagram", href: SOPORTE_INSTAGRAM_URL },
@@ -30,7 +30,12 @@ const CONTACTOS = [
     ),
   },
 ];
-const RUTAS_SIN_FOOTER = new Set(["/login", "/registro", "/recuperar"]);
+const RUTAS_SIN_FOOTER = new Set([
+  "/login",
+  "/registro",
+  "/recuperar",
+  "/recuperar/restablecer",
+]);
 
 export function Footer() {
   const pathname = usePathname();

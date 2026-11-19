@@ -341,10 +341,10 @@ tarde, se caen sprints enteros. Pedirlas **hoy**:
 
 | Sprint | Modulo | Estado |
 |---|---|---|
-| 1 | Infra, base de datos, auth y roles | **Hecho** |
-| 2 | Catalogo, busqueda, filtros, stock visible, perfil y direcciones | **Hecho:** ABM administrativo (Abril), busqueda/filtros/stock visible (Camila) y perfil/direcciones (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
-| 3 | Carrito, reserva temporal, Mercado Pago, cupones, correos | **Hecho:** carrito con reserva temporal de stock (Abril), checkout con Mercado Pago + motor de cupones/promociones (Camila) y correos + newsletter + tarifas de envio (Tadeo) implementados localmente. Falta revision/integracion del equipo. |
-| 4 | Panel de pedidos, kits, extracciones, reportes Excel, datos de prueba (RNF-05) | **Parcial:** kits, stock dinamico y extracciones (Camila) implementados localmente. Panel de pedidos (Abril) y reportes/seed masivo (Tadeo) pendientes. |
+| 1 | Infra, base de datos, auth, Google OAuth, recuperacion y roles | **Hecho** |
+| 2 | Catalogo, busqueda, filtros, asistente guiado, stock visible, perfil, direcciones con autocompletado y favoritos | **Hecho** |
+| 3 | Carrito, reserva temporal 90s, Mercado Pago Checkout Pro, cupones, promociones, correos y tarifas de envio | **Hecho** |
+| 4 | Panel de pedidos, kits, extracciones, ABM marcas/proveedores/categorias, promociones/cupones, reportes Excel y datos demo (RNF-05) | **Hecho** |
 
 ### Lo que falta decidir (bloquea al que siga)
 

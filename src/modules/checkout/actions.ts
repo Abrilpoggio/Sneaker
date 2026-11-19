@@ -64,10 +64,11 @@ export async function accionAplicarCupon(
   formData: FormData,
 ): Promise<EstadoAccionCheckout> {
   // Guard de sesion: sin login no se aplica cupon.
-  await requireCliente();
+  const sesion = await requireCliente();
 
   try {
-    const cupon = await validarCupon(formData.get("codigo"));
+    const usuarioId = await resolverComprador(sesion.user.id, sesion.user.email);
+    const cupon = await validarCupon(formData.get("codigo"), usuarioId);
 
     // RN-08: si ya hay un cupon guardado distinto se rechaza el
     // segundo; el mismo cupon se re-confirma sin error.

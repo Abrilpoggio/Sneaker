@@ -46,17 +46,15 @@ export default async function AdminReportesPage({
   let hasta: Date | undefined = undefined;
 
   if (desdeStr) {
-    const d = new Date(desdeStr);
+    const d = new Date(`${desdeStr}T00:00:00.000Z`);
     if (!isNaN(d.getTime())) {
-      d.setHours(0, 0, 0, 0);
       desde = d;
     }
   }
 
   if (hastaStr) {
-    const h = new Date(hastaStr);
+    const h = new Date(`${hastaStr}T23:59:59.999Z`);
     if (!isNaN(h.getTime())) {
-      h.setHours(23, 59, 59, 999);
       hasta = h;
     }
   }
@@ -413,6 +411,68 @@ export default async function AdminReportesPage({
           </div>
         </section>
       </div>
+
+      {/* Seccion 1.5: Ventas por Periodo (RF-47) */}
+      <section
+        aria-labelledby="titulo-ventas-periodo"
+        className="rounded-lg border border-[#E5E5E5] bg-white p-5 shadow-xs"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="titulo-ventas-periodo" className="text-base font-bold text-[#2C2C2C]">
+              Ventas por Período
+            </h2>
+            <p className="text-xs text-[#6B6B6B]">
+              Evolución diaria de pedidos confirmados, unidades y facturación neta.
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-[#6B6B6B]">
+            {stats.ventasPorPeriodo.length} día(s) con actividad
+          </span>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[#E5E5E5] text-xs font-semibold uppercase text-[#6B6B6B]">
+              <tr>
+                <th className="py-2 pr-3">Fecha</th>
+                <th className="py-2 pr-3 text-right">Pedidos válidos</th>
+                <th className="py-2 pr-3 text-right">Unidades vendidas</th>
+                <th className="py-2 text-right">Facturación neta</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F0F0]">
+              {stats.ventasPorPeriodo
+                .slice()
+                .reverse()
+                .slice(0, 15)
+                .map((dia) => (
+                  <tr key={dia.fecha} className="hover:bg-[#F9FAFB]">
+                    <td className="py-2 pr-3 font-mono text-xs font-semibold text-[#111827]">
+                      {dia.fecha}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-[#374151]">
+                      {dia.pedidos}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-[#374151]">
+                      {dia.unidades}
+                    </td>
+                    <td className="py-2 text-right font-semibold tabular-nums text-[#111827]">
+                      {formatoPrecio(dia.recaudacion)}
+                    </td>
+                  </tr>
+                ))}
+              {stats.ventasPorPeriodo.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-sm text-[#6B6B6B]">
+                    No hay ventas registradas en el período seleccionado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Seccion 2: Ranking de Clientes y Distribucion Geografica */}
       <div className="grid gap-6 lg:grid-cols-2">

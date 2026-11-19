@@ -81,7 +81,7 @@ export default async function MercadoPagoCheckoutPage() {
             : null
         }
         total={resumen.totalConEnvio}
-        bloqueado={!conReservaVigente || conBloqueos}
+        bloqueado={!conReservaVigente || conBloqueos || !direccion}
       />
     </div>
   );

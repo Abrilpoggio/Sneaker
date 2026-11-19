@@ -324,7 +324,7 @@ export function PerfilPanel({
                     <span>Documento (DNI)</span>
                     {cliente.dni !== null && (
                       <span className="text-[12px] font-normal text-[#6B6B6B]">
-                        Bloqueado (RN-03)
+                        No modificable
                       </span>
                     )}
                   </label>
@@ -375,7 +375,7 @@ export function PerfilPanel({
                       <rect x="4" y="11" width="16" height="10" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
                     </svg>
-                    Usuario (No modificable · RN-03)
+                    Usuario (No modificable)
                   </label>
                   <input
                     id="perfil-usuario-bloqueado"
@@ -403,7 +403,7 @@ export function PerfilPanel({
                       <rect x="4" y="11" width="16" height="10" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
                     </svg>
-                    Correo electrónico (No modificable · RN-03)
+                    Correo electrónico (No modificable)
                   </label>
                   <input
                     id="perfil-correo-bloqueado"

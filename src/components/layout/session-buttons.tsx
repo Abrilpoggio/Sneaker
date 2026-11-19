@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { useRutasAuth, useSesion } from "@/lib/auth-client";
 import { RolUsuario } from "@/generated/prisma/enums";
@@ -13,16 +15,39 @@ import { RolUsuario } from "@/generated/prisma/enums";
  *   conservando la ventana actual en `callbackUrl`.
  *
  * - Usuario autenticado (`CLIENTE` o `ADMIN`):
- *   Renderiza los iconos de Carrito (`/carrito`), Perfil (`/cuenta` o `/admin`)
- *   y Favoritos (`/cuenta/favoritos`).
+ *   Renderiza los iconos de Carrito (`/carrito`) con contador de unidades,
+ *   Perfil (`/cuenta` o `/admin`) y Favoritos (`/cuenta/favoritos`).
  */
 export function SessionButtons() {
   const { data: sesion, status } = useSesion();
   const { loginHref } = useRutasAuth();
+  const pathname = usePathname();
+  const [totalCarrito, setTotalCarrito] = useState(0);
 
   const autenticado =
     status === "authenticated" && Boolean(sesion?.user && !sesion.error);
   const esAdmin = sesion?.user?.rol === RolUsuario.ADMIN;
+
+  useEffect(() => {
+    if (!autenticado) return;
+    let activo = true;
+    const cargar = async () => {
+      try {
+        const res = await fetch("/api/carrito/resumen", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { totalItems?: number };
+        if (activo && typeof data.totalItems === "number") {
+          setTotalCarrito(data.totalItems);
+        }
+      } catch {
+        // Silencioso si no hay red
+      }
+    };
+    void cargar();
+    return () => {
+      activo = false;
+    };
+  }, [autenticado, pathname]);
 
   if (!autenticado) {
     return (
@@ -36,12 +61,16 @@ export function SessionButtons() {
   }
 
   return (
-    <div className="flex items-center gap-6 sm:gap-[34px]">
-      {/* 1. Shopping Cart (42 x 42) */}
+    <div className="flex items-center gap-4 sm:gap-[30px]">
+      {/* 1. Shopping Cart (42 x 42) + badge de cantidad */}
       <Link
         href="/carrito"
-        aria-label="Carrito de compras"
-        className="flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
+        aria-label={
+          totalCarrito > 0
+            ? `Carrito de compras (${totalCarrito} artículos)`
+            : "Carrito de compras"
+        }
+        className="relative flex h-[42px] w-[42px] items-center justify-center text-white transition-opacity hover:opacity-80"
       >
         <svg
           aria-hidden
@@ -49,7 +78,7 @@ export function SessionButtons() {
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="h-[36px] w-[36px]"
+          className="h-[32px] w-[32px] sm:h-[36px] sm:w-[36px]"
         >
           <circle cx="9" cy="21" r="1.5" />
           <circle cx="20" cy="21" r="1.5" />
@@ -59,6 +88,11 @@ export function SessionButtons() {
             d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
           />
         </svg>
+        {totalCarrito > 0 && (
+          <span className="absolute -right-1 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#CF1A1F] px-1 text-[11px] font-bold leading-none text-white shadow">
+            {totalCarrito > 99 ? "99+" : totalCarrito}
+          </span>
+        )}
       </Link>
 
       {/* 2. Profile Circle (42 x 42) */}

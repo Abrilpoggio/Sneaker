@@ -408,15 +408,22 @@ export function SelectorVarianteCarrito({
 
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Talles disponibles">
           {tallesUnicos.map((talle) => {
-            const varianteEnColor = variantes.find(
+            const variantesEnColorYTalle = variantes.filter(
               (v) =>
                 (v.color ?? "Único") === colorSeleccionado &&
                 (v.talle ?? "Único") === talle,
             );
-            const stockTalle = varianteEnColor?.stock ?? 0;
+            const varianteEnColor =
+              variantesEnColorYTalle.find((v) => v.stock > 0) ??
+              variantesEnColorYTalle[0];
+            const stockTalle = variantesEnColorYTalle.reduce(
+              (acc, v) => acc + v.stock,
+              0,
+            );
             const agotadoEnEsteColor = !varianteEnColor || stockTalle <= 0;
             const activo =
-              !agotadoEnEsteColor && varianteEnColor?.id === seleccionada.id;
+              !agotadoEnEsteColor &&
+              (seleccionada.talle ?? "Único") === talle;
 
             return (
               <button
@@ -450,6 +457,60 @@ export function SelectorVarianteCarrito({
             );
           })}
         </div>
+
+        {/* 3. Selector de MATERIAL (si existen variantes con distinto material para mismo color y talle) */}
+        {(() => {
+          const variantesMismoColorTalle = variantes.filter(
+            (v) =>
+              (v.color ?? "Único") === colorSeleccionado &&
+              (v.talle ?? "Único") === (seleccionada.talle ?? "Único"),
+          );
+          const materialesDistintos = Array.from(
+            new Set(variantesMismoColorTalle.map((v) => v.material ?? "Estándar")),
+          );
+          if (materialesDistintos.length <= 1) return null;
+          return (
+            <div className="mt-2 flex flex-col gap-1.5">
+              <p className="text-sm font-normal text-[#4E4E4E]">
+                Material:{" "}
+                <span className="font-semibold text-black">
+                  {seleccionada.material ?? "Estándar"}
+                </span>
+              </p>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Materiales disponibles">
+                {variantesMismoColorTalle.map((v) => {
+                  const mat = v.material ?? "Estándar";
+                  const agotado = v.stock <= 0;
+                  const activo = v.id === seleccionada.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={activo}
+                      disabled={agotado}
+                      onClick={() => {
+                        setVarianteId(v.id);
+                        if (v.stock > 0 && cantidad > v.stock) {
+                          setCantidad(v.stock);
+                        }
+                      }}
+                      className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-all ${
+                        agotado
+                          ? "cursor-not-allowed border-[#D9D9D9] bg-[#EBEBEB] text-[#9E9E9E] line-through"
+                          : activo
+                            ? "border-2 border-[#CF1A1F] bg-[#FFF5F5] text-[#CF1A1F]"
+                            : "border-[#D9D9D9] bg-white text-black hover:border-[#CF1A1F]"
+                      }`}
+                    >
+                      {mat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Estado de stock de la variante elegida (RF-10 / RF-11 / RN-09) */}
         <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -634,18 +695,21 @@ export function BotonAgregarAlCarrito({
 export function BotonIniciarReserva({
   accion,
   disabled,
+  textoDeshabilitado,
 }: {
   accion: (prev: EstadoAccionCarrito, formData: FormData) => Promise<EstadoAccionCarrito>;
   disabled?: boolean;
+  textoDeshabilitado?: string;
 }) {
   const [estado, formAction] = useActionState(accion, ESTADO_INICIAL_CARRITO);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <BotonConEstado
+        disabled={disabled}
         className="rounded-md bg-[#CF1A1F] px-6 py-3 text-xl font-medium leading-[16px] text-white transition-opacity hover:bg-[#7C0300] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-        {disabled ? "Resolvé los items sin stock" : "Iniciar compra"}
+      >
+        {disabled ? (textoDeshabilitado ?? "Resolvé los items sin stock") : "Iniciar compra"}
       </BotonConEstado>
       <MensajeEstado estado={estado} />
     </form>

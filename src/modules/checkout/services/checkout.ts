@@ -142,10 +142,11 @@ export async function olvidarCupon(): Promise<void> {
 }
 
 /**
- * RF-22: valida el cupon contra la base: existe, activo y dentro de
- * su ventana de vigencia (decision 12 del modelado).
+ * RF-22 / RN-08: valida el cupon contra la base: existe, activo, dentro de
+ * su ventana de vigencia y (si se informa usuarioId) que el cliente no lo
+ * haya utilizado ya en un pedido previo no cancelado/rechazado.
  */
-export async function validarCupon(codigoEntrada: unknown) {
+export async function validarCupon(codigoEntrada: unknown, usuarioId?: string) {
   const entradaNormalizada =
     typeof codigoEntrada === "string"
       ? { codigo: codigoEntrada }
@@ -161,6 +162,22 @@ export async function validarCupon(codigoEntrada: unknown) {
   }
   if (cupon.fechaVigenciaFin && cupon.fechaVigenciaFin < ahora) {
     throw new ErrorNegocioCheckout("CUPON_VENCIDO", "El cupón ya expiró.");
+  }
+  if (usuarioId) {
+    const yaUsado = await prisma.pedido.findFirst({
+      where: {
+        clienteId: usuarioId,
+        cuponId: cupon.id,
+        estado: { notIn: ["CANCELADO", "RECHAZADO"] },
+      },
+      select: { id: true },
+    });
+    if (yaUsado) {
+      throw new ErrorNegocioCheckout(
+        "CUPON_YA_UTILIZADO",
+        "Ya utilizaste este cupón en una compra anterior.",
+      );
+    }
   }
   return cupon;
 }
@@ -322,10 +339,16 @@ export async function crearPedidoPendiente(
   if (carrito.items.length === 0) {
     throw new ErrorNegocioCheckout("CARRITO_VACIO", "Tu carrito está vacío.");
   }
+  if (!carrito.reservaActiva) {
+    throw new ErrorNegocioCheckout(
+      "RESERVA_EXPIRADA",
+      "La reserva de tu carrito expiró. Volvé al carrito e iniciá la compra nuevamente.",
+    );
+  }
   if (carrito.items.some((item) => item.faltante > 0 || !item.productoActivo)) {
     throw new ErrorNegocioCheckout(
       "STOCK_INSUFICIENTE",
-      "Hay items sin stock suficiente o desactivados: volvé al carrito y ajustá las cantidades (RN-05).",
+      "Hay items sin stock suficiente o desactivados: volvé al carrito y ajustá las cantidades.",
     );
   }
 
@@ -337,13 +360,19 @@ export async function crearPedidoPendiente(
     if (!direccion) {
       throw new ErrorNegocioCheckout(
         "SIN_DIRECCION",
-        "Agregá una dirección de envío en Mi cuenta para continuar.",
+        "Agregá una dirección de envío para continuar.",
       );
+    }
+
+    const cuponCodigo =
+      opciones.cuponCodigo !== undefined ? opciones.cuponCodigo : await leerCuponGuardado();
+    if (cuponCodigo) {
+      await validarCupon(cuponCodigo, usuarioId);
     }
 
     const resumen = await resumenCheckout(
       carrito,
-      opciones.cuponCodigo !== undefined ? opciones.cuponCodigo : await leerCuponGuardado(),
+      cuponCodigo,
       { ciudad: direccion.ciudad, provincia: direccion.provincia },
     );
 
@@ -379,6 +408,21 @@ export async function crearPedidoPendiente(
     // RF-45: la tarifa se calcula desde la direccion congelada en el
     // snapshot, asi el costo y el destino del pedido siempre coinciden.
     const costoEnvio = calcularCostoEnvio(direccion.ciudad, direccion.provincia);
+
+    // Acumular montoDescontado por promocionId cuando multiples items comparten la misma promo
+    const promocionesAgrupadas = new Map<string, number>();
+    for (const linea of resumen.items) {
+      if (!linea.promocion) continue;
+      promocionesAgrupadas.set(
+        linea.promocion.id,
+        Math.round(
+          ((promocionesAgrupadas.get(linea.promocion.id) ?? 0) +
+            linea.promocion.montoDescontado) *
+            100,
+        ) / 100,
+      );
+    }
+
     const pedido = await tx.pedido.create({
       data: {
         numeroOrden,
@@ -422,15 +466,12 @@ export async function crearPedidoPendiente(
           }),
         },
         promociones: {
-          create: [...new Map(
-            resumen.items
-              .map((linea) => linea.promocion)
-              .filter((promo): promo is PromocionAplicada => Boolean(promo))
-              .map((promo) => [promo.id, promo]),
-          ).values()].map((promo) => ({
-            promocionId: promo.id,
-            montoDescontado: promo.montoDescontado,
-          })),
+          create: [...promocionesAgrupadas.entries()].map(
+            ([promocionId, montoDescontado]) => ({
+              promocionId,
+              montoDescontado,
+            }),
+          ),
         },
       },
       select: { id: true, numeroOrden: true, montoTotal: true },

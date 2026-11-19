@@ -66,7 +66,7 @@ export const productoAdminSchema = z.object({
 });
 
 export const productoCreateSchema = productoAdminSchema.extend({
-  talleInicial: z.string().trim().min(1, "La primera variante necesita un talle."),
+  talleInicial: nullableTexto,
   colorInicial: nullableTexto,
   materialInicial: nullableTexto,
   stockInicial: entero,
@@ -74,7 +74,7 @@ export const productoCreateSchema = productoAdminSchema.extend({
 
 export const varianteAdminSchema = z.object({
   productoId: z.string().min(1),
-  talle: z.string().trim().min(1, "El talle es obligatorio.").max(32),
+  talle: nullableTexto,
   color: nullableTexto,
   material: nullableTexto,
   stockActual: entero,

@@ -31,17 +31,15 @@ export async function GET(request: NextRequest) {
     let estado: EstadoPedido | "TODOS" | undefined = undefined;
 
     if (desdeParam) {
-      const d = new Date(desdeParam);
+      const d = new Date(`${desdeParam}T00:00:00.000Z`);
       if (!isNaN(d.getTime())) {
-        d.setHours(0, 0, 0, 0);
         desde = d;
       }
     }
 
     if (hastaParam) {
-      const h = new Date(hastaParam);
+      const h = new Date(`${hastaParam}T23:59:59.999Z`);
       if (!isNaN(h.getTime())) {
-        h.setHours(23, 59, 59, 999);
         hasta = h;
       }
     }

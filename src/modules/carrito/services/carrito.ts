@@ -386,8 +386,14 @@ export async function iniciarReservaCarrito(
             id: true,
             cantidad: true,
             varianteProductoId: true,
+            varianteProducto: {
+              select: {
+                producto: { select: { nombre: true, estado: true } },
+              },
+            },
             kit: {
               select: {
+                producto: { select: { nombre: true, estado: true } },
                 componentes: { select: { varianteId: true, cantidad: true } },
               },
             },
@@ -400,6 +406,23 @@ export async function iniciarReservaCarrito(
     }
     if (carrito.items.length === 0) {
       throw new ErrorNegocioCarrito("CARRITO_VACIO", "Tu carrito está vacío.");
+    }
+
+    // Verificar que todos los productos del carrito sigan activos
+    const inactivo = carrito.items.find((item) => {
+      const estado =
+        item.kit?.producto.estado ?? item.varianteProducto?.producto.estado;
+      return estado !== "ACTIVO";
+    });
+    if (inactivo) {
+      const nombre =
+        inactivo.kit?.producto.nombre ??
+        inactivo.varianteProducto?.producto.nombre ??
+        "un producto";
+      throw new ErrorNegocioCarrito(
+        "PRODUCTO_INACTIVO",
+        `El producto "${nombre}" ya no está disponible. Quitalo del carrito para continuar.`,
+      );
     }
 
     // Reserva ya vigente: es idempotente, no reinicia el temporizador.

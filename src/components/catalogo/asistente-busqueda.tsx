@@ -57,7 +57,7 @@ export function AsistenteBusqueda({
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E5E5E5] bg-gradient-to-r from-[#2C2C2C] via-[#3A3A3A] to-[#7C0300] px-6 py-5 text-white shadow-sm">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-[#FF8F8F]">
-              Asistente guiado · RF-08
+              Asistente guiado
             </p>
             <h3 className="mt-0.5 text-lg font-bold sm:text-xl">
               ¿No sabés qué zapatilla elegir? Te ayudamos en 3 pasos
