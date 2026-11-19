@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 
 import { ESTADO_INICIAL_CHECKOUT, type EstadoAccionCheckout } from "../schemas";
@@ -126,10 +126,16 @@ export function BotonPagar({
 }) {
   const [estado, formAction] = useActionState(accion, ESTADO_INICIAL_CHECKOUT);
 
+  useEffect(() => {
+    if (estado.redirectUrl) {
+      window.location.assign(estado.redirectUrl);
+    }
+  }, [estado.redirectUrl]);
+
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <BotonConEstado
-        disabled={disabled}
+        disabled={disabled || Boolean(estado.redirectUrl)}
         className={
           modo === "REAL"
             ? "inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-[#009EE3] px-7 text-lg font-bold text-white shadow-sm transition-colors hover:bg-[#0082BD] disabled:cursor-not-allowed disabled:opacity-50"
@@ -137,7 +143,11 @@ export function BotonPagar({
         }
         pendienteTexto={modo === "REAL" ? "Redirigiendo a Mercado Pago..." : "Confirmando pedido..."}
       >
-        {modo === "REAL" ? "Pagar con Mercado Pago" : "Pagar (simulado)"}
+        {estado.redirectUrl
+          ? "Redirigiendo a Mercado Pago..."
+          : modo === "REAL"
+            ? "Pagar con Mercado Pago"
+            : "Pagar (simulado)"}
       </BotonConEstado>
       <MensajeEstado estado={estado} />
     </form>

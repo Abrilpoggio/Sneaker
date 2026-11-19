@@ -154,7 +154,12 @@ export async function accionPagar(
         };
       }
       await olvidarCupon();
-      destino = pago.urlPago;
+      return {
+        ok: true,
+        mensaje: "Redirigiendo a Mercado Pago...",
+        redirectUrl: pago.urlPago,
+        marcaTiempo: Date.now(),
+      };
     } else {
       // Modo simulado: fase 1 + fase 2 en linea, sin API externa.
       const numeroOrden = await pagarSimuladoAprobado(usuarioId, cuponGuardado);

@@ -54,6 +54,11 @@ export default function ErrorPage({
           Ir al inicio
         </Link>
       </div>
+      {(error.digest || error.message) && (
+        <p className="mt-4 max-w-md break-all rounded bg-[#F5F5F5] px-3 py-1.5 font-mono text-[11px] text-[#6B6B6B]">
+          Ref: {error.digest ?? error.message}
+        </p>
+      )}
     </div>
   );
 }

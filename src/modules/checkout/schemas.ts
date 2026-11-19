@@ -27,6 +27,7 @@ export interface EstadoAccionCheckout {
   mensaje?: string;
   error?: string;
   codigo?: string;
+  redirectUrl?: string;
   marcaTiempo?: number;
 }
 
