@@ -214,7 +214,17 @@ export default async function CheckoutPage() {
 
       <div className="flex flex-wrap items-center gap-4">
         {modoPago === "REAL" ? (
-          <BotonPagar accion={accionPagar} modo={modoPago} disabled={pagoDeshabilitado} />
+          <>
+            <BotonPagar accion={accionPagar} modo={modoPago} disabled={pagoDeshabilitado} />
+            {!pagoDeshabilitado && (
+              <Link
+                href="/carrito/checkout/mercadopago"
+                className="inline-flex h-12 items-center justify-center rounded-lg border border-[#009EE3] bg-white px-5 text-sm font-semibold text-[#0073A8] transition-colors hover:bg-[#EBF7FD]"
+              >
+                Pago de prueba rápido (simulador)
+              </Link>
+            )}
+          </>
         ) : (
           <>
             {pagoDeshabilitado ? (

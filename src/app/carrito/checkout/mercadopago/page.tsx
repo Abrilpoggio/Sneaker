@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireCliente } from "@/lib/permissions";
-import { accionPagar, accionPagarRechazado } from "@/modules/checkout/actions";
+import { accionPagarRechazado, accionPagarSimulado } from "@/modules/checkout/actions";
 import { MercadoPagoPasarela } from "@/modules/checkout/components/mercadopago-pasarela";
 import { leerCuponGuardado, resumenCheckout } from "@/modules/checkout/services/checkout";
 import { obtenerEstadoCarrito, resolverComprador } from "@/modules/carrito/services/carrito";
@@ -57,7 +57,7 @@ export default async function MercadoPagoCheckoutPage() {
       )}
 
       <MercadoPagoPasarela
-        accionAprobar={accionPagar}
+        accionAprobar={accionPagarSimulado}
         accionRechazar={accionPagarRechazado}
         nombreComprador={
           direccion?.destinatario ?? sesion.user.name ?? sesion.user.usuario ?? "Cliente Sneaker"

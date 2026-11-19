@@ -116,10 +116,10 @@ export async function crearPreferenciaPago(
     init_point?: string;
     sandbox_init_point?: string;
   };
-  const esCredencialPrueba = (process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "").startsWith("TEST-");
-  const urlPago = esCredencialPrueba
-    ? (preferencia.sandbox_init_point ?? preferencia.init_point ?? null)
-    : (preferencia.init_point ?? preferencia.sandbox_init_point ?? null);
+  // Mercado Pago Checkout Pro utiliza siempre `init_point` tanto para
+  // credenciales de produccion como de prueba (`TEST-`); `sandbox_init_point`
+  // es legado y suele trabar el boton "Continuar" en el checkout externo.
+  const urlPago = preferencia.init_point ?? preferencia.sandbox_init_point ?? null;
 
   return { modo: "REAL", preferenciaId: preferencia.id, urlPago };
 }

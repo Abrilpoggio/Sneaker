@@ -203,3 +203,32 @@ export async function accionPagarRechazado(
 
   redirect(destino);
 }
+
+/**
+ * Pago aprobado mediante la pasarela local simulada (`/carrito/checkout/mercadopago`).
+ * Ejecuta siempre las mismas 2 fases (pedido pendiente + aprobacion atomica,
+ * descuento de stock y correo de confirmacion) sin depender del sandbox externo.
+ */
+export async function accionPagarSimulado(
+  _prev: EstadoAccionCheckout,
+  _formData: FormData,
+): Promise<EstadoAccionCheckout> {
+  void _prev;
+  void _formData;
+  const sesion: Sesion = await requireCliente();
+  let destino: string | null = null;
+
+  try {
+    const usuarioId = await resolverComprador(sesion.user.id, sesion.user.email);
+    const cuponGuardado = await leerCuponGuardado();
+    const numeroOrden = await pagarSimuladoAprobado(usuarioId, cuponGuardado);
+    await olvidarCupon();
+    revalidatePath("/carrito");
+    revalidatePath("/carrito/checkout");
+    destino = `/pedido/${numeroOrden}`;
+  } catch (error) {
+    return estadoError(error);
+  }
+
+  redirect(destino);
+}
