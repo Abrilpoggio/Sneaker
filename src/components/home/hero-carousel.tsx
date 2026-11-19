@@ -147,7 +147,7 @@ export function HeroCarousel() {
           className="flex h-[38px] items-center justify-center gap-2 rounded-lg bg-white px-4 py-1.5 shadow-md transition-transform hover:scale-[1.02] sm:h-[42px] sm:px-5"
         >
           <span className="text-xs font-semibold leading-[16px] text-black sm:text-sm">
-            ★ Suscríbete a NewsLetter
+            Suscribite a Sneaker
           </span>
         </Link>
       </div>

@@ -200,7 +200,7 @@ export async function accionRegistrar(
   try {
     const passwordHash = await bcrypt.hash(datos.password, 12);
 
-    await registrarCliente({
+    const nuevoUsuario = await registrarCliente({
       nombre: datos.nombre,
       apellido: datos.apellido,
       usuario,
@@ -209,6 +209,17 @@ export async function accionRegistrar(
       dni: datos.dni ?? null,
       passwordHash,
     });
+
+    if (formData.get("suscribirNewsletter")) {
+      try {
+        const { suscribirseNewsletter } = await import(
+          "@/modules/newsletter/services/newsletter"
+        );
+        await suscribirseNewsletter({ correo }, nuevoUsuario.id);
+      } catch {
+        // Nunca bloquear el alta de cuenta si falla la suscripcion opcional
+      }
+    }
   } catch {
     // La carrera entre dos registros simultaneos con el mismo correo/usuario/dni
     // la resuelve el UNIQUE de la base; aca solo se evita que el error de

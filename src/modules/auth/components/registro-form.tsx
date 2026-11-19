@@ -110,18 +110,22 @@ export function RegistroForm({
           </div>
         </div>
 
-        {/* Checkbox Acepto los terminos y condiciones (Frame 13: gap 6px, 13x13 #D9D9D9, radio 2px) */}
-        <div className="mt-[18px] w-full max-w-[328px]">
+        {/* Checkboxes de terminos y suscripcion opcional a novedades (RF-43/RF-44) */}
+        <div className="mt-[18px] flex w-full max-w-[328px] flex-col gap-2.5">
           <AuthCheckbox
             name="aceptaTerminos"
-            label="Acepto los terminos y condiciones"
+            label="Acepto los términos y condiciones"
             required
           />
           {estado.erroresCampos?.aceptaTerminos && (
-            <p className="mt-1 px-1 text-xs font-medium text-white">
+            <p className="px-1 text-xs font-medium text-white">
               {estado.erroresCampos.aceptaTerminos}
             </p>
           )}
+          <AuthCheckbox
+            name="suscribirNewsletter"
+            label="Quiero recibir ofertas, cupones y novedades por correo"
+          />
         </div>
 
         {/* Boton Registrarme (Frame 10: 163 x 39, #2C2C2C, radio 9px) */}
