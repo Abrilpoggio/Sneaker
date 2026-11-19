@@ -77,6 +77,14 @@ export default async function PaginaCuenta() {
         ? `${cuenta.cliente.conteos.pedidos}`
         : null,
     },
+    {
+      href: "/cuenta/favoritos",
+      titulo: "Mis Favoritos",
+      descripcion: "Productos que guardaste para ver después.",
+      insignia: cuenta.cliente
+        ? `${cuenta.cliente.conteos.favoritos}`
+        : null,
+    },
   ];
 
   return (

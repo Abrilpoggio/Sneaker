@@ -1,13 +1,16 @@
 import Link from "next/link";
 
+import { CuponesBanner } from "@/components/catalogo/cupones-banner";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
 import {
   listarCatalogo,
+  listarCuponesVigentes,
   obtenerFacetas,
   type DisponibilidadCatalogo,
   type FiltrosCatalogo,
   type OrdenCatalogo,
 } from "@/modules/catalogo/catalogo";
+import { obtenerIdsFavoritosActual } from "@/modules/clients/services/favoritos";
 
 /**
  * Catalogo publico con datos de la base. Sprint 2 - Camila Viegas.
@@ -31,6 +34,7 @@ interface ParametrosCatalogo {
   material?: string;
   disponibilidad?: string;
   orden?: string;
+  ofertas?: string;
 }
 
 const inputClass =
@@ -49,6 +53,8 @@ export default async function CatalogoPage({
   searchParams: Promise<ParametrosCatalogo>;
 }) {
   const parametros = await searchParams;
+  const soloOfertas =
+    parametros.ofertas === "1" || parametros.ofertas === "true";
   const filtros: FiltrosCatalogo = {
     q: parametros.q,
     categoria: parametros.categoria,
@@ -59,9 +65,15 @@ export default async function CatalogoPage({
     material: parametros.material,
     disponibilidad: (parametros.disponibilidad ?? "todas") as DisponibilidadCatalogo,
     orden: (parametros.orden ?? "relevancia") as OrdenCatalogo,
+    ofertas: soloOfertas,
   };
 
-  const [productos, facetas] = await Promise.all([listarCatalogo(filtros), obtenerFacetas()]);
+  const [productos, facetas, favoritosIds, cuponesVigentes] = await Promise.all([
+    listarCatalogo(filtros),
+    obtenerFacetas(),
+    obtenerIdsFavoritosActual(),
+    soloOfertas ? listarCuponesVigentes() : Promise.resolve([]),
+  ]);
   const hayFiltros = Object.values(parametros).some((valor) => Boolean(valor?.trim()));
 
   return (
@@ -81,10 +93,12 @@ export default async function CatalogoPage({
         <div className="absolute inset-0 bg-gradient-to-br from-[#CF1A1F]/70 via-[#2C2C2C]/65 to-[#1E1E1E]/85" />
         <div className="relative mx-auto flex h-full w-full max-w-[1287px] flex-col items-center justify-center gap-3 px-6 text-center sm:px-10">
           <h1 className="text-3xl font-extrabold tracking-wide text-white drop-shadow sm:text-[52px] sm:leading-[62px]">
-            CATÁLOGO COMPLETO
+            {soloOfertas ? "OFERTAS Y CUPONES" : "CATÁLOGO COMPLETO"}
           </h1>
           <p className="text-lg font-medium italic tracking-wide text-white/95 drop-shadow sm:text-2xl">
-            TODOS NUESTROS PRODUCTOS
+            {soloOfertas
+              ? "PROMOCIONES ACTIVAS Y DESCUENTOS VIGENTES"
+              : "TODOS NUESTROS PRODUCTOS"}
           </p>
         </div>
         <Link
@@ -309,6 +323,21 @@ export default async function CatalogoPage({
               </select>
             </div>
 
+            <label
+              htmlFor="filtro-ofertas"
+              className="flex cursor-pointer items-center gap-2.5 rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm font-semibold text-[#2C2C2C] transition-colors hover:border-[#CF1A1F]"
+            >
+              <input
+                id="filtro-ofertas"
+                name="ofertas"
+                type="checkbox"
+                value="1"
+                defaultChecked={soloOfertas}
+                className="h-4 w-4 accent-[#CF1A1F]"
+              />
+              <span>Solo ofertas y promociones</span>
+            </label>
+
             <button
               type="submit"
               className="mt-2 w-full rounded bg-[#CF1A1F] px-5 py-2.5 text-base font-semibold text-white transition-colors hover:bg-[#7C0300]"
@@ -320,17 +349,31 @@ export default async function CatalogoPage({
 
         {/* Columna principal de productos */}
         <section aria-label="Productos" className="flex flex-1 flex-col">
+          {soloOfertas && <CuponesBanner cupones={cuponesVigentes} />}
+
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E5E5] pb-4">
             <h2 className="text-lg font-semibold leading-[22px] text-black">
               {productos.length === 1
                 ? "1 producto encontrado"
                 : `${productos.length} productos encontrados`}
             </h2>
+            {soloOfertas && (
+              <Link
+                href="/catalogo"
+                className="text-sm font-semibold text-[#CF1A1F] underline hover:opacity-75"
+              >
+                Ver catálogo completo
+              </Link>
+            )}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-5">
             {productos.map((producto) => (
-              <ProductoCatalogoCard key={producto.id} producto={producto} />
+              <ProductoCatalogoCard
+                key={producto.id}
+                producto={producto}
+                esFavorito={favoritosIds.has(producto.id)}
+              />
             ))}
           </div>
 

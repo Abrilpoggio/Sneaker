@@ -6,6 +6,7 @@ import { ProductoCard } from "@/components/product-card";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
 import { listarCatalogo, type ProductoCatalogo } from "@/modules/catalogo/catalogo";
 import { PRODUCTOS } from "@/modules/catalogo/productos";
+import { obtenerIdsFavoritosActual } from "@/modules/clients/services/favoritos";
 
 /**
  * Landing page reconstruida desde el mockup de Figma.
@@ -48,8 +49,12 @@ export const dynamic = "force-dynamic";
 
 export default async function PaginaInicio() {
   let productosBase: ProductoCatalogo[] = [];
+  let favoritosIds = new Set<string>();
   try {
-    productosBase = await listarCatalogo({ disponibilidad: "todas", orden: "relevancia" });
+    [productosBase, favoritosIds] = await Promise.all([
+      listarCatalogo({ disponibilidad: "todas", orden: "relevancia" }),
+      obtenerIdsFavoritosActual(),
+    ]);
   } catch {
     productosBase = [];
   }
@@ -101,7 +106,11 @@ export default async function PaginaInicio() {
         <div className="mt-6 grid grid-cols-1 justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {productosBase.length > 0
             ? productosBase.slice(0, 4).map((p) => (
-                <ProductoCatalogoCard key={p.id} producto={p} />
+                <ProductoCatalogoCard
+                  key={p.id}
+                  producto={p}
+                  esFavorito={favoritosIds.has(p.id)}
+                />
               ))
             : PRODUCTOS.slice(0, 4).map((p) => <ProductoCard key={p.slug} producto={p} />)}
         </div>

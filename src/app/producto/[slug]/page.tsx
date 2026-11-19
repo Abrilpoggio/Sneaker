@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BotonFavorito } from "@/components/boton-favorito";
 import {
   obtenerProductoDetalle,
   calcularEstadoStock,
@@ -15,6 +16,7 @@ import {
   type OpcionVarianteCarrito,
 } from "@/modules/carrito/components/controles";
 import { buscarProducto, formatoPrecio } from "@/modules/catalogo/productos";
+import { obtenerIdsFavoritosActual } from "@/modules/clients/services/favoritos";
 
 /**
  * Detalle de producto reconstruido desde el mockup de Figma.
@@ -47,9 +49,12 @@ export default async function DetalleProductoPage({
 }) {
   const { slug } = await params;
 
-  const registro = await obtenerProductoDetalle(slug);
+  const [registro, favoritosIds] = await Promise.all([
+    obtenerProductoDetalle(slug),
+    obtenerIdsFavoritosActual(),
+  ]);
   if (registro) {
-    return renderDesdeBase(registro);
+    return renderDesdeBase(registro, favoritosIds.has(registro.id));
   }
 
   const producto = buscarProducto(slug);
@@ -246,22 +251,32 @@ export default async function DetalleProductoPage({
  * (RF-10); una variante con 1..10 unidades avisa "ultimas unidades"
  * y una con 0 se muestra deshabilitada (RN-09).
  */
-function renderDesdeBase({
-  id,
-  nombre,
-  marca,
-  categoria,
-  precio,
-  imagen,
-  garantia,
-  etiquetas,
-  descripcion,
-  stockTotal,
-  variantes,
-  componentesKit,
-  sku,
-}: ProductoDetalle) {
+function renderDesdeBase(
+  {
+    id,
+    nombre,
+    marca,
+    categoria,
+    precio,
+    porcentajeDescuento,
+    precioConDescuento,
+    nombrePromocion,
+    imagen,
+    garantia,
+    etiquetas,
+    descripcion,
+    stockTotal,
+    variantes,
+    componentesKit,
+    sku,
+  }: ProductoDetalle,
+  esFavorito: boolean,
+) {
   const { sinStock, ultimasUnidades } = calcularEstadoStock(stockTotal);
+  const tieneDescuento =
+    porcentajeDescuento !== null &&
+    porcentajeDescuento > 0 &&
+    precioConDescuento !== null;
   const variantesVista: OpcionVarianteCarrito[] = variantes.map((v) => ({
     id: v.id,
     talle: v.talle,
@@ -294,13 +309,20 @@ function renderDesdeBase({
         </div>
 
         <div className="flex flex-1 flex-col gap-4">
-          <p
-            className={`text-lg font-semibold leading-[27px] ${
-              sinStock ? "text-[#9E9E9E]" : "text-[#E53935]"
-            }`}
-          >
-            {sinStock ? "Sin stock disponible" : "Stock disponible"}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p
+              className={`text-lg font-semibold leading-[27px] ${
+                sinStock ? "text-[#9E9E9E]" : "text-[#E53935]"
+              }`}
+            >
+              {sinStock ? "Sin stock disponible" : "Stock disponible"}
+            </p>
+            <BotonFavorito
+              productoId={id}
+              inicialEsFavorito={esFavorito}
+              variante="boton"
+            />
+          </div>
           {ultimasUnidades && (
             <p className="inline-block w-fit rounded bg-[#CF1A1F] px-3 py-2 text-base font-medium leading-[16px] text-white">
               ¡Últimas {stockTotal} unidades!
@@ -315,10 +337,21 @@ function renderDesdeBase({
           </p>
           <p className="text-sm text-[#9E9E9E]">SKU: {sku}</p>
 
-          <div className="flex items-baseline gap-4">
+          <div className="flex flex-wrap items-baseline gap-3">
+            {tieneDescuento && (
+              <span className="text-2xl font-medium text-[#FF8F8F] line-through">
+                {formatoPrecio(precio)}
+              </span>
+            )}
             <span className="text-[40px] font-medium leading-[49px] text-black">
-              {formatoPrecio(precio)}
+              {formatoPrecio(tieneDescuento ? precioConDescuento : precio)}
             </span>
+            {tieneDescuento && (
+              <span className="rounded bg-[#CF1A1F] px-2.5 py-1 text-sm font-bold text-white">
+                -{porcentajeDescuento}% OFF
+                {nombrePromocion ? ` · ${nombrePromocion}` : ""}
+              </span>
+            )}
           </div>
 
           {/* RF-10 / RF-21: selector interactivo de talle/color con un único botón "Agregar al carrito".
