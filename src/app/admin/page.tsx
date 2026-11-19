@@ -140,6 +140,9 @@ export default async function PaginaAdmin() {
           <Link href="/admin/etiquetas" className="text-sm font-semibold text-[#CF1A1F] underline">
             Gestionar etiquetas de uso
           </Link>
+          <Link href="/admin/catalogos" className="text-sm font-semibold text-[#CF1A1F] underline">
+            Gestionar marcas, proveedores y categorías
+          </Link>
         </div>
       </section>
 

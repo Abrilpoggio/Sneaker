@@ -33,7 +33,7 @@ export function VarianteForm({ productoId, variante }: { productoId: string; var
       {variante && <input type="hidden" name="varianteId" value={variante.id} />}
       <label className="flex flex-col gap-1 text-xs font-semibold text-[#4E4E4E]">
         Talle
-        <input required name="talle" defaultValue={variante?.talle ?? ""} className={inputClass} />
+        <input name="talle" defaultValue={variante?.talle ?? ""} placeholder="Opcional" className={inputClass} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-semibold text-[#4E4E4E]">
         Color

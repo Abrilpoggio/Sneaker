@@ -236,6 +236,12 @@ function BotonConEstado({
 }
 
 function MensajeEstado({ estado }: { estado: EstadoAccionCarrito }) {
+  useEffect(() => {
+    if (estado.ok) {
+      window.dispatchEvent(new Event("sneaker:carrito-actualizado"));
+    }
+  }, [estado.ok, estado.marcaTiempo]);
+
   if (estado.ok && estado.mensaje) {
     return (
       <p role="status" className="text-base font-medium leading-[16px] text-green-700">

@@ -185,8 +185,8 @@ export function ProductoForm({
           <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-md border-2 border-dashed border-[#9E9E9E] bg-[#FAFAFA] p-6 text-center lg:min-h-[400px]">
             <span aria-hidden className="text-5xl text-[#2C2C2C]">↑</span>
             <label className="flex cursor-pointer flex-col items-center gap-3 font-semibold text-[#2C2C2C]">
-              Arrastra y suelta tus imagenes aqui
-              <span className="text-sm font-normal text-[#9E9E9E]">o haz clic para seleccionar (PNG, JPG, WEBP, GIF)</span>
+              Seleccioná una imagen del producto
+              <span className="text-sm font-normal text-[#9E9E9E]">Formatos admitidos: PNG, JPG, WEBP o GIF</span>
               <input
                 type="file"
                 name="imagenArchivo"
@@ -201,8 +201,8 @@ export function ProductoForm({
           {!producto && (
             <fieldset className="grid gap-4 rounded-md border border-[#D9D9D9] p-4 sm:grid-cols-2">
               <legend className="px-2 text-sm font-semibold text-[#2C2C2C]">Primera variante</legend>
-              <Field label="Talle" error={error("talleInicial")}>
-                <input required name="talleInicial" placeholder="Ej: 37" className={inputClass} />
+              <Field label="Talle (opcional en accesorios)" error={error("talleInicial")}>
+                <input name="talleInicial" placeholder="Ej: 37 (o dejar vacío)" className={inputClass} />
               </Field>
               <Field label="Color">
                 <input name="colorInicial" placeholder="Ej: Blanco" className={inputClass} />

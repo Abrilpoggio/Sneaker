@@ -20,7 +20,7 @@ const COOKIES_SESION = [
 ];
 
 /** Rutas que exigen sesion de cliente (RN-01). */
-const RUTAS_CLIENTE = ["/cuenta", "/carrito", "/checkout", "/favoritos", "/pedidos"];
+const RUTAS_CLIENTE = ["/cuenta", "/carrito", "/checkout", "/favoritos", "/pedidos", "/pedido"];
 
 /** Rutas exclusivas de administrador (RNF-08). */
 const RUTAS_ADMIN = ["/admin"];
@@ -63,6 +63,7 @@ export const config = {
     "/checkout/:path*",
     "/favoritos/:path*",
     "/pedidos/:path*",
+    "/pedido/:path*",
     "/admin/:path*",
   ],
 };

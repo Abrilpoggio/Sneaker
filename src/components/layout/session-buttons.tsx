@@ -44,8 +44,13 @@ export function SessionButtons() {
       }
     };
     void cargar();
+    const alActualizar = () => {
+      void cargar();
+    };
+    window.addEventListener("sneaker:carrito-actualizado", alActualizar);
     return () => {
       activo = false;
+      window.removeEventListener("sneaker:carrito-actualizado", alActualizar);
     };
   }, [autenticado, pathname]);
 
