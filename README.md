@@ -616,6 +616,51 @@ calculado, la reserva de un kit, la venta con descuento individual de
 componentes y el registro de extracciones. Como el resto de los
 arneses, modifica stock real: correr `npm run db:seed` para restaurar.
 
+### Alcance de Tadeo en Sprint 4
+
+En `prisma/seeds/datos-demo.ts`, `src/modules/reportes`, `src/app/admin/reportes` y
+`src/app/api/admin/reportes/excel` se implementa la exportacion de estadisticas a Excel
+y la carga masiva de datos de demostracion asignada a Tadeo:
+
+- **Carga de datos de prueba para demostracion (RNF-05)**: sembrado ampliado en
+  `prisma/seeds/datos-demo.ts` que complementa `prisma/seed.ts`. Incorpora 16
+  clientes argentinos completos con DNI unico, telefonos, emails y domicilios en
+  diversas provincias (CABA, Buenos Aires, Entre Rios - Concepcion del Uruguay y
+  Parana, Santa Fe - Rosario, Cordoba, Mendoza, Salta, Tucuman, Tierra del Fuego),
+  junto con un historial de 78 pedidos distribuidos realisticamente en los ultimos
+  110 dias. Contempla transiciones de estado (`RECIBIDO`, `EN_CAMINO`, `PREPARANDO`,
+  `CONFIRMADO`, `CANCELADO`, `RECHAZADO`), calculo geografico de costos de envio
+  (`calcularCostoEnvio` - RF-45), aplicacion de cupones (`BIENVENIDO10`), lineas de
+  articulos individuales y kits con snapshot, y trazabilidad de `MovimientoStock` de
+  tipo `VENTA` e `INGRESO` de restitucion ante cancelacion (`RF-37`).
+- **Servicio y Panel de Estadisticas de Ventas (RF-47)**:
+  `src/modules/reportes/services/estadisticas.ts` y `/admin/reportes` proporcionan
+  agregaciones en tiempo real filtrables por rango de fechas (`desde` / `hasta`) y
+  estado del pedido. Presenta KPIs ejecutivos (facturacion neta y bruta, descuentos,
+  envios cobrados, efectividad, ticket promedio), ranking de los productos mas
+  vendidos por unidades y facturacion, desglose por categoria y marca, ranking de
+  clientes destacados por inversion acumulada, metricas de logistica por provincia y
+  monitoreo de alertas de inventario (variantes con stock critico <= 10 unidades por
+  `RN-09` y variantes agotadas por `RF-09`).
+- **Exportacion de reportes a archivos .xlsx (RF-48)**:
+  `src/modules/reportes/services/generador-excel.ts` y el endpoint protegido
+  `GET /api/admin/reportes/excel` construyen un libro de calculo profesional en
+  OpenXML (`exceljs`) formateado con los colores corporativos de Sneaker (rojo
+  `#CF1A1F` y carbon `#2C2C2C`), zebra striping, formulas nativas (`SUM`), bordes
+  limpios y formatos numericos de moneda (`$#,##0.00`), porcentajes y fechas.
+  Estructurado en 5 hojas tecnicas:
+  1. *Resumen Ejecutivo*: banner de auditoria, KPIs, distribucion de pedidos por
+     estado y valorizacion patrimonial del inventario.
+  2. *Ventas Detalladas*: orden por orden con cliente, DNI, ubicacion, subtotales,
+     descuentos, envios, metodo de pago, cupon y fila de totales sumados.
+  3. *Items Vendidos*: desglose de cada renglon despachado, discriminando
+     variantes individuales de calzado/accesorios y kits compuestos.
+  4. *Top Productos y Marcas*: ranking ordenado de articulos mas vendidos y tabla
+     de clientes destacados por facturacion y recurrencia.
+  5. *Inventario y Stock*: catalogo completo de variantes con existencias, costos,
+     precios de venta, margenes calculados, valorizacion total y resaltado
+     condicional de stock critico o faltante.
+
 ---
 
 ## 11. Git
