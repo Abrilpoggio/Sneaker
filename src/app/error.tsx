@@ -1,31 +1,51 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 
 export default function ErrorPage({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error("[Sneaker ErrorBoundary]", error);
+  }, [error]);
+
+  const esDesfaseDeploy =
+    error.message?.includes("Server Action") ||
+    error.message?.includes("Failed to find Server Action");
+
   return (
     <div className="mx-auto flex min-h-[55vh] max-w-xl flex-col items-center justify-center gap-4 px-4 py-16 text-center">
       <p className="text-sm font-bold uppercase tracking-widest text-[#CF1A1F]">
         Ocurrió un inconveniente
       </p>
       <h1 className="text-3xl font-bold text-[#2C2C2C]">
-        Algo salió mal al cargar esta pantalla
+        {esDesfaseDeploy
+          ? "La aplicación se actualizó recién"
+          : "Algo salió mal al cargar esta pantalla"}
       </h1>
       <p className="text-base text-[#6B6B6B]">
-        Podés reintentar la operación o volver a la página principal de Sneaker.
+        {esDesfaseDeploy
+          ? "Recargá la página para cargar la versión más reciente y continuar tu operación."
+          : "Podés reintentar la operación o volver a la página principal de Sneaker."}
       </p>
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         <button
           type="button"
-          onClick={() => reset()}
+          onClick={() => {
+            if (esDesfaseDeploy) {
+              window.location.reload();
+            } else {
+              reset();
+            }
+          }}
           className="rounded-md bg-[#CF1A1F] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7C0300]"
         >
-          Reintentar
+          {esDesfaseDeploy ? "Recargar página" : "Reintentar"}
         </button>
         <Link
           href="/"

@@ -10,7 +10,7 @@ import { z } from "zod";
  * usuario" sigue pendiente de precision del cliente; por ahora el
  * motor limita a un cupon por pedido (ver README). */
 export const MENSAJE_UN_CUPON_POR_COMPRA =
-  "Solo se puede aplicar un cupón por compra (RN-08).";
+  "Solo se puede aplicar un cupón por compra.";
 
 export const aplicarCuponSchema = z.object({
   codigo: z
