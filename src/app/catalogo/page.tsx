@@ -1,10 +1,8 @@
 import Link from "next/link";
 
-import { CuponesBanner } from "@/components/catalogo/cupones-banner";
 import { ProductoCatalogoCard } from "@/components/producto-catalogo-card";
 import {
   listarCatalogo,
-  listarCuponesVigentes,
   obtenerFacetas,
   type DisponibilidadCatalogo,
   type FiltrosCatalogo,
@@ -68,11 +66,10 @@ export default async function CatalogoPage({
     ofertas: soloOfertas,
   };
 
-  const [productos, facetas, favoritosIds, cuponesVigentes] = await Promise.all([
+  const [productos, facetas, favoritosIds] = await Promise.all([
     listarCatalogo(filtros),
     obtenerFacetas(),
     obtenerIdsFavoritosActual(),
-    soloOfertas ? listarCuponesVigentes() : Promise.resolve([]),
   ]);
   const hayFiltros = Object.values(parametros).some((valor) => Boolean(valor?.trim()));
 
@@ -93,11 +90,11 @@ export default async function CatalogoPage({
         <div className="absolute inset-0 bg-gradient-to-br from-[#CF1A1F]/70 via-[#2C2C2C]/65 to-[#1E1E1E]/85" />
         <div className="relative mx-auto flex h-full w-full max-w-[1287px] flex-col items-center justify-center gap-3 px-6 text-center sm:px-10">
           <h1 className="text-3xl font-extrabold tracking-wide text-white drop-shadow sm:text-[52px] sm:leading-[62px]">
-            {soloOfertas ? "OFERTAS Y CUPONES" : "CATÁLOGO COMPLETO"}
+            {soloOfertas ? "OFERTAS VIGENTES" : "CATÁLOGO COMPLETO"}
           </h1>
           <p className="text-lg font-medium italic tracking-wide text-white/95 drop-shadow sm:text-2xl">
             {soloOfertas
-              ? "PROMOCIONES ACTIVAS Y DESCUENTOS VIGENTES"
+              ? "PRODUCTOS CON PROMOCIONES ACTIVAS"
               : "TODOS NUESTROS PRODUCTOS"}
           </p>
         </div>
@@ -349,8 +346,6 @@ export default async function CatalogoPage({
 
         {/* Columna principal de productos */}
         <section aria-label="Productos" className="flex flex-1 flex-col">
-          {soloOfertas && <CuponesBanner cupones={cuponesVigentes} />}
-
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E5E5] pb-4">
             <h2 className="text-lg font-semibold leading-[22px] text-black">
               {productos.length === 1

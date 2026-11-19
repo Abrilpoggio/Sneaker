@@ -223,7 +223,7 @@ export function Header() {
               <span aria-hidden className="h-3.5 w-px bg-white/70" />
 
               <Link
-                href="/catalogo?ofertas=1"
+                href="/cupones"
                 className="flex items-center gap-1.5 text-[13px] font-bold italic tracking-wide text-white transition-opacity hover:opacity-80 sm:text-[14px]"
               >
                 <span>CUPONES</span>
