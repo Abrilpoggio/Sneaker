@@ -34,3 +34,14 @@ export interface EstadoAccionCheckout {
 export const ESTADO_INICIAL_CHECKOUT: EstadoAccionCheckout = {
   ok: false,
 };
+
+export interface EstadoDireccionCheckout {
+  ok: boolean;
+  mensaje?: string;
+  error?: string;
+  erroresCampos?: Record<string, string>;
+}
+
+export const ESTADO_INICIAL_DIRECCION_CHECKOUT: EstadoDireccionCheckout = {
+  ok: false,
+};

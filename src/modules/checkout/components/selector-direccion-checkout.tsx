@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   accionGuardarDireccionCheckout,
   accionSeleccionarDireccionCheckout,
-  ESTADO_INICIAL_DIRECCION_CHECKOUT,
 } from "@/modules/checkout/direccion-actions";
+import { ESTADO_INICIAL_DIRECCION_CHECKOUT } from "@/modules/checkout/schemas";
 import {
   MAXIMO_DIRECCIONES_POR_CLIENTE,
   PROVINCIAS_ARGENTINA,
