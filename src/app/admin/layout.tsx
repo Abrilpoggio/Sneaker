@@ -12,6 +12,8 @@ const enlaces = [
   { href: "/admin/kits", label: "Kits" },
   { href: "/admin/extracciones", label: "Extracciones" },
   { href: "/admin/etiquetas", label: "Etiquetas de Uso" },
+  { href: "/admin/promociones", label: "Promociones y Cupones" },
+  { href: "/admin/newsletter", label: "Newsletter" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

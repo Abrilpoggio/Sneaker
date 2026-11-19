@@ -21,7 +21,21 @@ const nullableTexto = z
 
 function esRutaImagenSegura(value: string | null) {
   if (value === null) return true;
-  return value.startsWith("/productos/") && !value.includes("..") && !value.startsWith("//");
+  if (value.startsWith("/productos/") && !value.includes("..") && !value.startsWith("//")) {
+    return true;
+  }
+  if (value.startsWith("https://")) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+  if (/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(value)) {
+    return true;
+  }
+  return false;
 }
 
 export const productoAdminSchema = z.object({
@@ -39,7 +53,10 @@ export const productoAdminSchema = z.object({
       z
         .string()
         .nullable()
-        .refine(esRutaImagenSegura, "Usa una ruta local de /productos/ o sube un archivo."),
+        .refine(
+          esRutaImagenSegura,
+          "Usa una ruta /productos/, una URL https:// válida o subí una imagen.",
+        ),
     ),
   estado: z.enum(["ACTIVO", "INACTIVO"]),
   categoriaId: z.string().min(1, "Selecciona una categoria."),

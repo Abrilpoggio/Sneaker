@@ -84,19 +84,36 @@ async function imagenDeFormulario(
   const tipos = new Map([
     ["image/png", "png"],
     ["image/jpeg", "jpg"],
+    ["image/webp", "webp"],
     ["image/gif", "gif"],
   ]);
   const extension = tipos.get(archivo.type);
-  if (!extension) return { imagen: imagenIngresada, error: "La imagen debe ser PNG, JPG o GIF." };
+  if (!extension) {
+    return { imagen: imagenIngresada, error: "La imagen debe ser PNG, JPG, WEBP o GIF." };
+  }
   if (archivo.size > 4 * 1024 * 1024) {
     return { imagen: imagenIngresada, error: "La imagen no puede superar los 4 MB." };
   }
 
-  const nombre = `${randomUUID()}.${extension}`;
-  const directorio = path.join(process.cwd(), "public", "productos");
-  await mkdir(directorio, { recursive: true });
-  await writeFile(path.join(directorio, nombre), Buffer.from(await archivo.arrayBuffer()));
-  return { imagen: `/productos/${nombre}` };
+  const buffer = Buffer.from(await archivo.arrayBuffer());
+
+  try {
+    const nombre = `${randomUUID()}.${extension}`;
+    const directorio = path.join(process.cwd(), "public", "productos");
+    await mkdir(directorio, { recursive: true });
+    await writeFile(path.join(directorio, nombre), buffer);
+    return { imagen: `/productos/${nombre}` };
+  } catch {
+    // En entornos serverless de solo lectura (ej. Vercel) guardamos Data URL en DB.
+    if (archivo.size > 1.5 * 1024 * 1024) {
+      return {
+        imagen: imagenIngresada,
+        error:
+          "En producción la imagen subida no puede superar 1.5 MB (o pegá una URL https://).",
+      };
+    }
+    return { imagen: `data:${archivo.type};base64,${buffer.toString("base64")}` };
+  }
 }
 
 async function validarReferencias(input: {

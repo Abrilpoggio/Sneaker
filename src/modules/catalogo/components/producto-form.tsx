@@ -154,8 +154,8 @@ export function ProductoForm({
             </Field>
           )}
 
-          <Field label="Ruta de imagen" error={error("imagen")} hint="Ruta local dentro de public/productos; tambien puedes subir una imagen en el panel de la derecha.">
-            <input name="imagen" defaultValue={producto?.imagen} placeholder="/productos/imagen.png" className={inputClass} />
+          <Field label="Ruta o URL de imagen" error={error("imagen")} hint="Podés pegar una URL https://, una ruta /productos/... o subir una imagen a la derecha.">
+            <input name="imagen" defaultValue={producto?.imagen} placeholder="https://... o /productos/imagen.png" className={inputClass} />
           </Field>
 
           <fieldset className="flex flex-col gap-3">
@@ -186,11 +186,11 @@ export function ProductoForm({
             <span aria-hidden className="text-5xl text-[#2C2C2C]">↑</span>
             <label className="flex cursor-pointer flex-col items-center gap-3 font-semibold text-[#2C2C2C]">
               Arrastra y suelta tus imagenes aqui
-              <span className="text-sm font-normal text-[#9E9E9E]">o haz clic para seleccionar (PNG, JPG, GIF; max. 4 MB)</span>
+              <span className="text-sm font-normal text-[#9E9E9E]">o haz clic para seleccionar (PNG, JPG, WEBP, GIF)</span>
               <input
                 type="file"
                 name="imagenArchivo"
-                accept="image/png,image/jpeg,image/gif"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 className="max-w-full text-sm font-normal text-[#4E4E4E] file:mr-3 file:rounded-sm file:border-0 file:bg-black file:px-4 file:py-2 file:font-semibold file:text-white"
               />
             </label>

@@ -19,9 +19,17 @@ export const metadata: Metadata = {
 export default async function PaginaAdmin() {
   const sesion = await requireAdmin();
 
-  // Verificacion de humo del Sprint 1: si la base esta conectada y las
-  // migraciones aplicadas, estos conteos son coherentes.
-  const [pedidos, productos, variantes, usuarios, movimientos, kits, extracciones] = await Promise.all([
+  const [
+    pedidos,
+    productos,
+    variantes,
+    usuarios,
+    movimientos,
+    kits,
+    extracciones,
+    promociones,
+    cupones,
+  ] = await Promise.all([
     prisma.pedido.count(),
     prisma.producto.count(),
     prisma.varianteProducto.count(),
@@ -29,6 +37,8 @@ export default async function PaginaAdmin() {
     prisma.movimientoStock.count(),
     prisma.kit.count(),
     prisma.movimientoStock.count({ where: { tipo: "EXTRACCION" } }),
+    prisma.promocion.count({ where: { activa: true } }),
+    prisma.cupon.count({ where: { activo: true } }),
   ]);
 
   const tarjetas = [
@@ -37,7 +47,9 @@ export default async function PaginaAdmin() {
     { etiqueta: "Variantes", valor: variantes, destino: "/admin/variantes" },
     { etiqueta: "Kits", valor: kits, destino: "/admin/kits" },
     { etiqueta: "Extracciones", valor: extracciones, destino: "/admin/extracciones" },
-    { etiqueta: "Usuarios", valor: usuarios, destino: "/admin/usuarios" },
+    { etiqueta: "Promociones activas", valor: promociones, destino: "/admin/promociones" },
+    { etiqueta: "Cupones activos", valor: cupones, destino: "/admin/promociones" },
+    { etiqueta: "Usuarios registrados", valor: usuarios, destino: "/admin/reportes" },
     {
       etiqueta: "Movimientos de stock",
       valor: movimientos,
@@ -46,7 +58,16 @@ export default async function PaginaAdmin() {
   ];
 
   const tarjetasExtra = [
-    { etiqueta: "Newsletter (RF-44)", detalle: "Enviar novedades a suscriptos", destino: "/admin/newsletter" },
+    {
+      etiqueta: "Promociones y Cupones (RF-41 / RF-42)",
+      detalle: "Crear, activar y gestionar descuentos",
+      destino: "/admin/promociones",
+    },
+    {
+      etiqueta: "Newsletter (RF-44)",
+      detalle: "Enviar novedades a suscriptos",
+      destino: "/admin/newsletter",
+    },
   ];
 
   return (
@@ -127,8 +148,8 @@ export default async function PaginaAdmin() {
           Marketing
         </h2>
         <p className="mt-2 text-sm text-texto-tenue">
-          El ABM de cupones y promociones (RF-41/42) esta pendiente sin
-          responsable; los datos de prueba se cargan con el seed.
+          Gestioná promociones por fecha, cupones de descuento y comunicaciones
+          a suscriptores del newsletter.
         </p>
         <div className="mt-3 flex flex-col gap-2">
           {tarjetasExtra.map((tarjeta) => (
