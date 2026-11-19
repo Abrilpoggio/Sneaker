@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { prisma } from "@/lib/prisma";
 import { requireCliente } from "@/lib/permissions";
 import { mercadoPagoHabilitado } from "@/lib/env";
 import { accionPagar, accionPagarRechazado } from "@/modules/checkout/actions";
@@ -12,28 +11,28 @@ import {
   BotonPagar,
   FormularioCupon,
 } from "@/modules/checkout/components/checkout-ui";
+import {
+  SelectorDireccionCheckout,
+  type DireccionCheckoutItem,
+} from "@/modules/checkout/components/selector-direccion-checkout";
 import { resumenCheckout, leerCuponGuardado } from "@/modules/checkout/services/checkout";
 import { accionAplicarCupon, accionQuitarCupon } from "@/modules/checkout/actions";
 import { obtenerEstadoCarrito, resolverComprador } from "@/modules/carrito/services/carrito";
 import { CountdownReserva } from "@/modules/carrito/components/countdown";
 import { formatoPrecio } from "@/modules/catalogo/productos";
+import { listarDireccionesCliente } from "@/modules/clients/services/direcciones";
 
 export const metadata: Metadata = { title: "Checkout · Sneaker" };
 
 /**
- * Checkout (Sprint 3 - Camila Viegas / Tadeo Rochas. RF-22, RF-24,
+ * Checkout (Sprint 3 - Camila Viegas / Tadeo Rochas. RF-18, RF-22, RF-24,
  * RF-25, RF-45, RN-08).
  *
  * Muestra el resumen con promociones por item (la mejor vigente por
  * producto, no acumulativas), el cupon aplicado (RN-08: uno por
- * compra) y el costo de envio por destino (RF-45: tarifa base en la
- * ciudad de la tienda y tarifa por provincia). El pago ejecuta la
- * confirmacion en dos fases: pedido pendiente con montos congelados y,
- * al aprobarse el pago, descuento de stock con guardas atomicas
- * (RN-05).
- *
- * Alcance: la direccion se toma de la predeterminada (seleccion
- * durante la compra = RF-18, tarea separada).
+ * compra), el selector/alta/edicion inline de direccion de envio
+ * (RF-18) y el costo de envio por destino (RF-45: tarifa base en la
+ * ciudad de la tienda y tarifa por provincia).
  */
 export default async function CheckoutPage() {
   const sesion = await requireCliente();
@@ -44,21 +43,22 @@ export default async function CheckoutPage() {
     redirect("/carrito");
   }
 
-  // RF-45: el envio se calcula sobre la direccion predeterminada, la
-  // misma que congelara el pedido.
-  const direccion = await prisma.direccion.findFirst({
-    where: { clienteId: usuarioId },
-    orderBy: [{ predeterminada: "desc" }, { creadoEn: "asc" }],
-    select: {
-      destinatario: true,
-      calle: true,
-      numero: true,
-      piso: true,
-      departamento: true,
-      ciudad: true,
-      provincia: true,
-    },
-  });
+  // RF-18 / RF-45: las direcciones vienen ordenadas con la seleccionada
+  // (predeterminada) primero; esa misma calcula el envio y se congela en el pedido.
+  const direccionesRaw = await listarDireccionesCliente(usuarioId);
+  const direccionesVista: DireccionCheckoutItem[] = direccionesRaw.map((d) => ({
+    id: d.id,
+    destinatario: d.destinatario,
+    calle: d.calle,
+    numero: d.numero,
+    piso: d.piso,
+    departamento: d.departamento,
+    ciudad: d.ciudad,
+    provincia: d.provincia,
+    codigoPostal: d.codigoPostal,
+    predeterminada: d.predeterminada,
+  }));
+  const direccion = direccionesVista[0] ?? null;
   const destino = direccion
     ? { ciudad: direccion.ciudad, provincia: direccion.provincia }
     : null;
@@ -110,39 +110,7 @@ export default async function CheckoutPage() {
         </div>
       )}
 
-      {direccion ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#D9D9D9] bg-white p-4">          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#9E9E9E]">
-              Enviar a
-            </p>
-            <p className="text-base font-semibold text-[#2C2C2C]">{direccion.destinatario}</p>
-            <p className="text-sm text-[#6B6B6B]">
-              {direccion.calle} {direccion.numero}
-              {direccion.piso ? `, Piso ${direccion.piso}` : ""}
-              {direccion.departamento ? `, Depto ${direccion.departamento}` : ""} ·{" "}
-              {direccion.ciudad}, {direccion.provincia}
-            </p>
-          </div>
-          <Link
-            href="/cuenta/direcciones"
-            className="text-base font-semibold text-[#CF1A1F] underline"
-          >
-            Cambiar dirección
-          </Link>
-        </div>
-      ) : (
-        <div className="rounded-md border border-[#D9A800] bg-[#FFFBE6] px-4 py-3">
-          <p className="text-base font-semibold text-[#8A6D00]">
-            No tenés una dirección de envío cargada: cargala en tu cuenta antes de pagar.
-          </p>
-          <Link
-            href="/cuenta/direcciones"
-            className="mt-2 inline-block text-base font-semibold text-[#CF1A1F] underline"
-          >
-            Cargar dirección
-          </Link>
-        </div>
-      )}
+      <SelectorDireccionCheckout direcciones={direccionesVista} />
 
       <ul className="flex flex-col gap-3">
         {resumen.items.map((linea) => (

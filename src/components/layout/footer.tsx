@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  enlaceCorreoGeneral,
+  enlaceWhatsappGeneral,
+  SOPORTE_EMAIL,
+  SOPORTE_INSTAGRAM_URL,
+} from "@/lib/soporte";
+
 /**
  * Footer reconstruido desde el mockup de Figma.
  *
@@ -13,8 +20,15 @@ import { usePathname } from "next/navigation";
 
 const CATEGORIAS = ["Urbanas", "Deportivas", "Medias", "Accesorios"];
 const CONTACTOS = [
-  { label: "Whatsapp", href: "https://wa.me/5490000000000" },
-  { label: "Instagram", href: "https://instagram.com/" },
+  { label: "WhatsApp", href: enlaceWhatsappGeneral() },
+  { label: "Instagram", href: SOPORTE_INSTAGRAM_URL },
+  {
+    label: "Cancelaciones y reclamos",
+    href: enlaceCorreoGeneral(
+      "Cancelación, reclamo o reembolso · Sneaker",
+      "Hola Sneaker, necesito gestionar una cancelación, reclamo o reembolso. Mi número de pedido es: #",
+    ),
+  },
 ];
 const RUTAS_SIN_FOOTER = new Set(["/login", "/registro", "/recuperar"]);
 
@@ -66,24 +80,30 @@ export function Footer() {
         </nav>
 
         {/* Contactanos: titulo 32px/600, lista 24px/400, gap 30 */}
-        <div className="flex flex-col gap-[30px]">
+        <div className="flex flex-col gap-[24px]">
           <h2 className="text-[32px] font-semibold leading-[39px] text-white">
             Contactanos
           </h2>
-          <ul className="flex flex-col gap-[15px]">
+          <ul className="flex flex-col gap-[12px]">
             {CONTACTOS.map((c) => (
               <li key={c.label}>
                 <a
                   href={c.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-2xl font-normal leading-[29px] text-white transition-opacity hover:opacity-70"
+                  target={c.href.startsWith("http") ? "_blank" : undefined}
+                  rel={
+                    c.href.startsWith("http") ? "noopener noreferrer" : undefined
+                  }
+                  className="block text-xl font-normal leading-[27px] text-white transition-opacity hover:opacity-70"
                 >
                   {c.label}
                 </a>
               </li>
             ))}
           </ul>
+          <p className="max-w-xs text-xs leading-relaxed text-white/70">
+            Cancelaciones, reclamos y reembolsos se gestionan por canal externo
+            de atención al cliente ({SOPORTE_EMAIL} o WhatsApp).
+          </p>
         </div>
       </div>
 

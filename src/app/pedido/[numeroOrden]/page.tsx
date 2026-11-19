@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { mercadoPagoHabilitado } from "@/lib/env";
 import { requireCliente } from "@/lib/permissions";
+import { enlacesReclamoPedido } from "@/lib/soporte";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
 import { obtenerPedidoConfirmado } from "@/modules/checkout/services/checkout";
 import { procesarWebhookPago } from "@/modules/checkout/services/pagos";
@@ -119,6 +120,10 @@ export default async function PedidoPage({ params, searchParams }: Props) {
     provincia?: string;
     codigoPostal?: string;
   };
+  const canalesReclamo = enlacesReclamoPedido(
+    pedido.numeroOrden,
+    formatoPrecio(Number(pedido.montoTotal)),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-[1287px] flex-col gap-6 px-4 py-10">
@@ -240,6 +245,39 @@ export default async function PedidoPage({ params, searchParams }: Props) {
           </p>
         )}
       </div>
+
+      {/* RF-52 / RN-10: Canal externo para cancelaciones, reclamos o reembolsos */}
+      <section
+        aria-label="Cancelaciones, reclamos y reembolsos"
+        className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-[#E5E5E5] bg-[#FAFAFA] p-4"
+      >
+        <div className="max-w-xl">
+          <p className="text-sm font-bold text-[#2C2C2C]">
+            ¿Necesitás cancelar, hacer un reclamo o solicitar un reembolso?
+          </p>
+          <p className="mt-0.5 text-xs text-[#6B6B6B]">
+            Las cancelaciones post-compra, reclamos y devoluciones se gestionan
+            directamente con nuestro equipo de atención al cliente indicando tu
+            número de orden <strong>#{pedido.numeroOrden}</strong>.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={canalesReclamo.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md bg-[#25D366] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Contactar por WhatsApp
+          </a>
+          <a
+            href={canalesReclamo.correo}
+            className="inline-flex items-center justify-center rounded-md border border-[#2C2C2C] bg-white px-4 py-2 text-xs font-semibold text-[#2C2C2C] transition-colors hover:bg-[#F5F5F5]"
+          >
+            Enviar correo de soporte
+          </a>
+        </div>
+      </section>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
