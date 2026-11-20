@@ -4,7 +4,7 @@
  */
 
 export const SOPORTE_EMAIL = "soporte@sneakercalzados.com.ar";
-export const SOPORTE_WHATSAPP_NUMERO = "5493447400000";
+export const SOPORTE_WHATSAPP_NUMERO = "5493447535132";
 export const SOPORTE_INSTAGRAM_URL = "https://instagram.com/sneakercalzados";
 
 export function enlaceWhatsappGeneral(mensaje?: string): string {
