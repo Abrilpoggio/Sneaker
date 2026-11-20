@@ -72,8 +72,42 @@ export interface FacetasCatalogo {
   marcas: { nombre: string; slug: string }[];
   etiquetas: { nombre: string; slug: string }[];
   talles: string[];
+  tallesPorCategoria: Record<string, string[]>;
   colores: string[];
   materiales: string[];
+}
+
+const REGEX_TALLE_CALZADO = /^\d{2}$/;
+
+const GRUPOS_COLOR: { nombre: string; terminos: string[] }[] = [
+  { nombre: "Amarillo", terminos: ["amarillo"] },
+  { nombre: "Azul", terminos: ["azul"] },
+  { nombre: "Beige", terminos: ["beige", "arena", "crema"] },
+  { nombre: "Blanco", terminos: ["blanco"] },
+  { nombre: "Bordó", terminos: ["bordo", "bordó"] },
+  { nombre: "Celeste", terminos: ["celeste"] },
+  { nombre: "Gris", terminos: ["gris", "plata"] },
+  { nombre: "Naranja", terminos: ["naranja", "coral"] },
+  { nombre: "Negro", terminos: ["negro"] },
+  { nombre: "Rojo", terminos: ["rojo"] },
+  { nombre: "Rosa", terminos: ["rosa"] },
+  { nombre: "Verde", terminos: ["verde", "oliva", "lima"] },
+];
+
+function terminosParaColor(colorFiltro: string): string[] {
+  const normalizado = colorFiltro.trim().toLowerCase();
+  const grupo = GRUPOS_COLOR.find(
+    (g) => g.nombre.toLowerCase() === normalizado,
+  );
+  return grupo ? grupo.terminos : [colorFiltro.trim()];
+}
+
+function esTalleCalzado(talle: string | null): talle is string {
+  return Boolean(talle && REGEX_TALLE_CALZADO.test(talle.trim()));
+}
+
+function ordenarTallesNumericos(talles: Iterable<string>): string[] {
+  return [...new Set(talles)].sort((a, b) => Number(a) - Number(b));
 }
 
 export function calcularEstadoStock(stock: number): {
@@ -253,7 +287,12 @@ function construirWhere(filtros: FiltrosCatalogo): Prisma.ProductoWhereInput {
   }
   const filtroVariante: Prisma.VarianteProductoWhereInput = {};
   if (filtros.talle) filtroVariante.talle = filtros.talle;
-  if (filtros.color) filtroVariante.color = filtros.color;
+  if (filtros.color) {
+    const terminos = terminosParaColor(filtros.color);
+    filtroVariante.OR = terminos.map((termino) => ({
+      color: { contains: termino, mode: "insensitive" },
+    }));
+  }
   if (filtros.material) filtroVariante.material = filtros.material;
   if (filtros.disponibilidad === "con-stock") {
     filtroVariante.stockActual = { gt: 0 };
@@ -389,7 +428,12 @@ export async function obtenerFacetas(): Promise<FacetasCatalogo> {
     }),
     prisma.varianteProducto.findMany({
       where: { producto: { is: { estado: "ACTIVO" } } },
-      select: { talle: true, color: true, material: true },
+      select: {
+        talle: true,
+        color: true,
+        material: true,
+        producto: { select: { categoria: { select: { slug: true } } } },
+      },
     }),
   ]);
 
@@ -398,12 +442,44 @@ export async function obtenerFacetas(): Promise<FacetasCatalogo> {
       a.localeCompare(b, "es"),
     );
 
+  const tallesCalzado = ordenarTallesNumericos(
+    variantes.map((v) => v.talle).filter(esTalleCalzado),
+  );
+
+  const mapaTallesCat = new Map<string, Set<string>>();
+  for (const v of variantes) {
+    if (!esTalleCalzado(v.talle)) continue;
+    const slug = v.producto.categoria.slug;
+    const conjunto = mapaTallesCat.get(slug) ?? new Set<string>();
+    conjunto.add(v.talle.trim());
+    mapaTallesCat.set(slug, conjunto);
+  }
+  const tallesPorCategoria: Record<string, string[]> = {};
+  for (const [slug, conjunto] of mapaTallesCat.entries()) {
+    tallesPorCategoria[slug] = ordenarTallesNumericos(conjunto);
+  }
+
+  const coloresBasePresentes = new Set<string>();
+  for (const v of variantes) {
+    if (!v.color) continue;
+    const valorLower = v.color.toLowerCase();
+    for (const grupo of GRUPOS_COLOR) {
+      if (grupo.terminos.some((t) => valorLower.includes(t))) {
+        coloresBasePresentes.add(grupo.nombre);
+      }
+    }
+  }
+  const colores = [...coloresBasePresentes].sort((a, b) =>
+    a.localeCompare(b, "es"),
+  );
+
   return {
     categorias,
     marcas,
     etiquetas,
-    talles: valoresUnicos(variantes.map((v) => v.talle)),
-    colores: valoresUnicos(variantes.map((v) => v.color)),
+    talles: tallesCalzado,
+    tallesPorCategoria,
+    colores,
     materiales: valoresUnicos(variantes.map((v) => v.material)),
   };
 }

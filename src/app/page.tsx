@@ -61,6 +61,7 @@ export default async function PaginaInicio() {
     marcas: [],
     etiquetas: [],
     talles: [],
+    tallesPorCategoria: {},
     colores: [],
     materiales: [],
   };
@@ -121,6 +122,7 @@ export default async function PaginaInicio() {
           categorias={facetas.categorias}
           etiquetas={facetas.etiquetas}
           talles={facetas.talles}
+          tallesPorCategoria={facetas.tallesPorCategoria}
           variante="banner"
         />
       </section>

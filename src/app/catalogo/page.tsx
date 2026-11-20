@@ -250,11 +250,34 @@ export default async function CatalogoPage({
                 className={inputClass}
               >
                 <option value="">Todos los talles</option>
-                {facetas.talles.map((t) => (
-                  <option key={t} value={t}>
-                    Talle {t}
-                  </option>
-                ))}
+                {filtros.categoria && facetas.tallesPorCategoria[filtros.categoria] ? (
+                  facetas.tallesPorCategoria[filtros.categoria].map((t) => (
+                    <option key={t} value={t}>
+                      Talle {t}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <optgroup label="Adultos (Hombre / Mujer)">
+                      {facetas.talles
+                        .filter((t) => Number(t) >= 35)
+                        .map((t) => (
+                          <option key={t} value={t}>
+                            Talle {t}
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Niños">
+                      {facetas.talles
+                        .filter((t) => Number(t) <= 34)
+                        .map((t) => (
+                          <option key={t} value={t}>
+                            Talle {t}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </>
+                )}
               </select>
             </div>
 
@@ -358,6 +381,7 @@ export default async function CatalogoPage({
                 categorias={facetas.categorias}
                 etiquetas={facetas.etiquetas}
                 talles={facetas.talles}
+                tallesPorCategoria={facetas.tallesPorCategoria}
                 variante="boton"
               />
               {soloOfertas && (

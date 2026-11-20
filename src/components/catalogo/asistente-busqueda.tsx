@@ -12,6 +12,7 @@ interface AsistenteBusquedaProps {
   categorias: OpcionSlug[];
   etiquetas: OpcionSlug[];
   talles: string[];
+  tallesPorCategoria?: Record<string, string[]>;
   variante?: "banner" | "boton";
 }
 
@@ -25,6 +26,7 @@ export function AsistenteBusqueda({
   categorias,
   etiquetas,
   talles,
+  tallesPorCategoria,
   variante = "banner",
 }: AsistenteBusquedaProps) {
   const router = useRouter();
@@ -33,6 +35,31 @@ export function AsistenteBusqueda({
   const [etiqueta, setEtiqueta] = useState("");
   const [categoria, setCategoria] = useState("");
   const [talle, setTalle] = useState("");
+
+  // Solo talles numericos de calzado; niños (<= 34) solo para categoria Niños,
+  // adultos (>= 35) para Hombre, Mujer, Deportivas, Urbanas o sin categoria.
+  const tallesCalzado = talles.filter((t) => /^\d{2}$/.test(t));
+  const tallesAdulto = tallesCalzado.filter((t) => Number(t) >= 35);
+  const tallesNinos = tallesCalzado.filter((t) => Number(t) <= 34);
+
+  const esCategoriaNinos =
+    categoria.toLowerCase().includes("niñ") ||
+    categoria.toLowerCase().includes("nin");
+
+  const tallesVisibles: string[] = (() => {
+    if (!categoria) {
+      return tallesAdulto.length > 0 ? tallesAdulto : tallesCalzado;
+    }
+    if (tallesPorCategoria) {
+      return tallesPorCategoria[categoria] ?? [];
+    }
+    return esCategoriaNinos ? tallesNinos : tallesAdulto;
+  })();
+
+  function seleccionarCategoria(slug: string) {
+    setCategoria(slug);
+    setTalle("");
+  }
 
   function reiniciar() {
     setPaso(1);
@@ -173,7 +200,7 @@ export function AsistenteBusqueda({
                 <div className="flex flex-wrap gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setCategoria("")}
+                    onClick={() => seleccionarCategoria("")}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                       categoria === ""
                         ? "border-[#CF1A1F] bg-[#CF1A1F] text-white"
@@ -186,7 +213,7 @@ export function AsistenteBusqueda({
                     <button
                       key={c.slug}
                       type="button"
-                      onClick={() => setCategoria(c.slug)}
+                      onClick={() => seleccionarCategoria(c.slug)}
                       className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                         categoria === c.slug
                           ? "border-[#CF1A1F] bg-[#CF1A1F] text-white"
@@ -200,32 +227,44 @@ export function AsistenteBusqueda({
               )}
 
               {paso === 3 && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTalle("")}
-                    className={`rounded-md border px-3.5 py-2 text-sm font-semibold transition-colors ${
-                      talle === ""
-                        ? "border-[#CF1A1F] bg-[#CF1A1F] text-white"
-                        : "border-[#D9D9D9] bg-white text-[#2C2C2C] hover:border-[#2C2C2C]"
-                    }`}
-                  >
-                    Todos los talles
-                  </button>
-                  {talles.map((t) => (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={t}
                       type="button"
-                      onClick={() => setTalle(t)}
-                      className={`min-w-[48px] rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
-                        talle === t
+                      onClick={() => setTalle("")}
+                      className={`rounded-md border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                        talle === ""
                           ? "border-[#CF1A1F] bg-[#CF1A1F] text-white"
                           : "border-[#D9D9D9] bg-white text-[#2C2C2C] hover:border-[#2C2C2C]"
                       }`}
                     >
-                      {t}
+                      Todos los talles
                     </button>
-                  ))}
+                    {tallesVisibles.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTalle(t)}
+                        className={`min-w-[48px] rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                          talle === t
+                            ? "border-[#CF1A1F] bg-[#CF1A1F] text-white"
+                            : "border-[#D9D9D9] bg-white text-[#2C2C2C] hover:border-[#2C2C2C]"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  {tallesVisibles.length === 0 && (
+                    <p className="text-xs text-[#6B6B6B]">
+                      Esta categoría no usa talles numéricos de calzado. Podés ver todas las opciones disponibles.
+                    </p>
+                  )}
+                  {!categoria && tallesNinos.length > 0 && (
+                    <p className="text-xs text-[#6B6B6B]">
+                      ¿Buscás talle de niños (27–34)? Elegí la categoría Niños en el paso anterior.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
