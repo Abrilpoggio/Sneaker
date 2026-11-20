@@ -19,6 +19,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { resolverImagenParaFiltroColor } from "@/modules/catalogo/imagenes-variantes";
 import { calcularStockProducto } from "@/modules/inventory/services/stock";
 
 /** Umbral de RN-09: 10 unidades o menos disparan el aviso. */
@@ -354,7 +355,7 @@ export async function listarCatalogo(
         categoria: { select: { nombre: true } },
         marca: { select: { nombre: true } },
         etiquetas: { select: { etiqueta: { select: { nombre: true } } } },
-        variantes: { select: { stockActual: true } },
+        variantes: { select: { stockActual: true, color: true } },
         kit: {
           select: {
             componentes: {
@@ -367,10 +368,21 @@ export async function listarCatalogo(
     obtenerPromocionesVigentes(),
   ]);
 
+  const terminosColor = filtros.color ? terminosParaColor(filtros.color) : [];
+
   const productos: ProductoCatalogo[] = registros.map((registro) => {
     const variantes = registro.variantes;
     const precio = Number(registro.precioVenta);
     const promo = resolverMejorPromocion(registro.id, precio, promocionesVigentes);
+    const imagen =
+      terminosColor.length > 0
+        ? resolverImagenParaFiltroColor(
+            registro.sku,
+            registro.imagen,
+            variantes,
+            terminosColor,
+          )
+        : registro.imagen;
     return {
       id: registro.id,
       sku: registro.sku,
@@ -380,7 +392,7 @@ export async function listarCatalogo(
       porcentajeDescuento: promo.porcentajeDescuento,
       precioConDescuento: promo.precioConDescuento,
       nombrePromocion: promo.nombrePromocion,
-      imagen: registro.imagen,
+      imagen,
       categoria: registro.categoria.nombre,
       marca: registro.marca.nombre,
       etiquetas: registro.etiquetas.map(({ etiqueta }) => etiqueta.nombre),
