@@ -140,6 +140,22 @@ export default async function PedidoPage({ params, searchParams }: Props) {
       <div className={`rounded-md border px-4 py-3 ${etiqueta.clase}`}>
         <p className="text-lg font-bold leading-[24px]">{etiqueta.titulo}</p>
         <p className="mt-1 text-base font-medium leading-[16px]">{etiqueta.detalle}</p>
+        {pedido.estado === "PENDIENTE" &&
+          (mercadoPagoHabilitado() && pedido.preferenciaId ? (
+            <a
+              href={`https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${encodeURIComponent(pedido.preferenciaId)}`}
+              className="mt-3 inline-flex h-10 items-center rounded-[5px] bg-[#009EE3] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0082BD]"
+            >
+              Completar pago en Mercado Pago →
+            </a>
+          ) : (
+            <Link
+              href="/carrito/checkout"
+              className="mt-3 inline-flex h-10 items-center rounded-[5px] bg-[#009EE3] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0082BD]"
+            >
+              Completar pago en Mercado Pago →
+            </Link>
+          ))}
         {pedido.estado === "RECHAZADO" && (
           <Link
             href={mercadoPagoHabilitado() ? "/carrito/checkout" : "/carrito/checkout/mercadopago"}

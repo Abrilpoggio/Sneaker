@@ -696,6 +696,7 @@ export async function obtenerPedidoConfirmado(usuarioId: string, numeroOrden: st
       costoEnvio: true,
       metodoPago: true,
       pagoExternoId: true,
+      preferenciaId: true,
       datosEnvio: true,
       clienteId: true,
       cupon: { select: { codigo: true, porcentajeDescuento: true } },

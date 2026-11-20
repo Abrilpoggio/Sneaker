@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { mercadoPagoHabilitado } from "@/lib/env";
 import { requireCliente } from "@/lib/permissions";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
 import { formatoPrecio } from "@/modules/catalogo/productos";
@@ -24,6 +25,7 @@ export default async function CuentaPedidosPage() {
   const sesion = await requireCliente();
   const clienteId = await resolverComprador(sesion.user.id, sesion.user.email);
   const pedidos = await listarPedidosCliente(clienteId);
+  const mpActivo = mercadoPagoHabilitado();
 
   return (
     <div className="mx-auto flex w-full max-w-[1170px] flex-col gap-6">
@@ -70,6 +72,10 @@ export default async function CuentaPedidosPage() {
               ciudad?: string;
               provincia?: string;
             };
+            const urlRetomarPago =
+              pedido.estado === "PENDIENTE" && mpActivo && pedido.preferenciaId
+                ? `https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=${encodeURIComponent(pedido.preferenciaId)}`
+                : null;
 
             return (
               <article
@@ -142,7 +148,25 @@ export default async function CuentaPedidosPage() {
                     Ver comprobante completo →
                   </Link>
 
-                  <BotonRepetirCompra pedidoId={pedido.id} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    {pedido.estado === "PENDIENTE" &&
+                      (urlRetomarPago ? (
+                        <a
+                          href={urlRetomarPago}
+                          className="inline-flex h-10 items-center rounded-[5px] bg-[#009EE3] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0082BD]"
+                        >
+                          Completar pago en Mercado Pago →
+                        </a>
+                      ) : (
+                        <Link
+                          href="/carrito/checkout"
+                          className="inline-flex h-10 items-center rounded-[5px] bg-[#009EE3] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0082BD]"
+                        >
+                          Completar pago en Mercado Pago →
+                        </Link>
+                      ))}
+                    <BotonRepetirCompra pedidoId={pedido.id} />
+                  </div>
                 </div>
               </article>
             );
