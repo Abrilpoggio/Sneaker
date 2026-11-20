@@ -101,6 +101,14 @@ export async function accionIniciarSesion(
     throw error;
   }
 
+  try {
+    const { cookies } = await import("next/headers");
+    const almacen = await cookies();
+    almacen.delete("sneaker_cupon");
+  } catch {
+    // Ignorar si no hay contexto de cookies
+  }
+
   revalidatePath("/", "layout");
   return { exito: "Sesion iniciada.", redirectTo: destino };
 }
@@ -392,5 +400,12 @@ export async function accionRestablecerPassword(
  * Cierre de sesion.
  */
 export async function accionCerrarSesion(): Promise<void> {
+  try {
+    const { cookies } = await import("next/headers");
+    const almacen = await cookies();
+    almacen.delete("sneaker_cupon");
+  } catch {
+    // Ignorar si no hay contexto de cookies
+  }
   await signOut({ redirectTo: "/" });
 }

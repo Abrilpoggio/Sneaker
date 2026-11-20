@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useRutasAuth, useSesion, signOut } from "@/lib/auth-client";
@@ -149,7 +148,7 @@ const ITEMS_ADMIN: ItemMenu[] = [
   },
   {
     href: "/admin/productos",
-    label: "Gestion de Productos",
+    label: "Gestión de Productos",
     icono: (
       <svg
         aria-hidden
@@ -169,7 +168,7 @@ const ITEMS_ADMIN: ItemMenu[] = [
     ),
   },
   {
-    href: "/admin/stock",
+    href: "/admin/variantes",
     label: "Variantes y Stock",
     icono: (
       <svg
@@ -208,7 +207,7 @@ const ITEMS_ADMIN: ItemMenu[] = [
   },
   {
     href: "/admin/pedidos",
-    label: "Pedidos y Envios",
+    label: "Pedidos y Envíos",
     icono: (
       <svg
         aria-hidden
@@ -226,8 +225,8 @@ const ITEMS_ADMIN: ItemMenu[] = [
     ),
   },
   {
-    href: "/admin/proveedores",
-    label: "Proveedores",
+    href: "/admin/catalogos",
+    label: "Marcas y Proveedores",
     icono: (
       <svg
         aria-hidden
@@ -248,9 +247,7 @@ const ITEMS_ADMIN: ItemMenu[] = [
 export function SideMenu() {
   const [abierto, setAbierto] = useState(false);
   const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname() ?? "/";
-  const { data: sesion, status, update } = useSesion();
+  const { data: sesion, status } = useSesion();
   const { loginHref, registroHref } = useRutasAuth();
 
   const autenticado =
@@ -265,12 +262,7 @@ export function SideMenu() {
 
   const manejarCerrarSesion = async () => {
     cerrarMenuCompleto();
-    await signOut({ redirect: false });
-    await update();
-    if (pathname.startsWith("/cuenta") || pathname.startsWith("/admin")) {
-      router.replace("/");
-    }
-    router.refresh();
+    await signOut({ callbackUrl: "/" });
   };
 
   useEffect(() => {

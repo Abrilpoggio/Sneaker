@@ -157,6 +157,8 @@ export const authConfig = {
         return {
           ...token,
           sub: userId,
+          email: user.email ?? token.email,
+          name: user.name ?? token.name,
           rol,
           usuario: nombreUsuario,
           accessTokenExpires: ahora + DURACION_ACCESS_TOKEN_MS,

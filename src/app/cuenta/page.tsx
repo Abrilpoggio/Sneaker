@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { requireCliente } from "@/lib/permissions";
+import { accionCerrarSesion } from "@/modules/auth/actions";
 import { MAXIMO_DIRECCIONES_POR_CLIENTE } from "@/modules/clients/schemas";
 import {
   ErrorNegocioCliente,
@@ -129,14 +130,24 @@ export default async function PaginaCuenta() {
             </div>
           </div>
 
-          {cuenta.cliente && (
-            <Link
-              href="/cuenta/perfil?editar=1"
-              className="inline-flex items-center gap-2 rounded-[7px] bg-[#2C2C2C] px-4 py-2 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
-            >
-              Editar datos personales
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {cuenta.cliente && (
+              <Link
+                href="/cuenta/perfil?editar=1"
+                className="inline-flex items-center gap-2 rounded-[7px] bg-[#2C2C2C] px-4 py-2 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
+              >
+                Editar datos personales
+              </Link>
+            )}
+            <form action={accionCerrarSesion}>
+              <button
+                type="submit"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-[7px] border border-[#D9D9D9] bg-white px-4 py-2 text-[14px] font-medium text-[#CF1A1F] transition-colors hover:border-[#CF1A1F] hover:bg-[#FFF5F5]"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* 3 Tarjetas de navegacion (Figma Group 36, 37, 38 - 343 x 123, radio 7, sombra) */}
