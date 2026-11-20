@@ -16,6 +16,10 @@ const esquemaServidor = z.object({
   MERCADO_PAGO_ACCESS_TOKEN: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   CORREO_REMITENTE: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
 });
 
 export type VariablesServidor = z.infer<typeof esquemaServidor>;
@@ -62,17 +66,32 @@ export function mercadoPagoHabilitado(): boolean {
 }
 
 /**
- * RF-28 / RF-44: el proveedor de correo (Resend) es opcional en
- * desarrollo. Sin `RESEND_API_KEY` los correos se escriben en la
+ * Transporte SMTP directo (ej. Gmail con contraseña de aplicacion).
+ * Permite entregar correos reales a cualquier destinatario sin requerir
+ * verificar un dominio propio en Resend.
+ */
+export function smtpHabilitado(): boolean {
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+/**
+ * RF-28 / RF-44: el proveedor de correo (SMTP o Resend) es opcional en
+ * desarrollo. Sin credenciales los correos se escriben en la
  * consola del servidor (modo simulado) sin fallar: el mismo contenido
  * que se mandaria por SMTP llega a la terminal y queda demostrable el
  * flujo completo.
  */
 export function correoHabilitado(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return smtpHabilitado() || Boolean(process.env.RESEND_API_KEY);
 }
 
-/** Remitente de los correos salientes (Resend exige uno verificado). */
+/** Remitente de los correos salientes. */
 export function remitenteCorreo(): string {
-  return process.env.CORREO_REMITENTE ?? "Sneaker <onboarding@resend.dev>";
+  if (process.env.CORREO_REMITENTE) {
+    return process.env.CORREO_REMITENTE;
+  }
+  if (process.env.SMTP_USER) {
+    return `Sneaker <${process.env.SMTP_USER}>`;
+  }
+  return "Sneaker <onboarding@resend.dev>";
 }

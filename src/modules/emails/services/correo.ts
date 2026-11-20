@@ -1,4 +1,6 @@
-import { correoHabilitado, remitenteCorreo } from "@/lib/env";
+import nodemailer from "nodemailer";
+
+import { correoHabilitado, remitenteCorreo, smtpHabilitado } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { formatoPrecio } from "@/modules/catalogo/productos";
@@ -9,11 +11,13 @@ import { formatoPrecio } from "@/modules/catalogo/productos";
  * RF-28: correo de confirmacion de compra con el detalle de los
  * productos, los descuentos aplicados y un mensaje de agradecimiento.
  *
- * Transporte: Resend via HTTP API. Sin `RESEND_API_KEY` el modo
- * simulado escribe el correo completo en la consola del servidor: el
- * contenido que se mandaria queda demostrable sin cuenta de SMTP. El
- * envio NUNCA debe romper la compra: los llamadores lo invocan luego
- * de confirmar el pedido y el fallo del proveedor solo se loguea.
+ * Transportes soportados:
+ * 1. SMTP (Nodemailer, por ej. Gmail con Contraseña de Aplicacion via
+ *    `SMTP_USER` + `SMTP_PASS`): entrega correos reales a cualquier
+ *    destinatario sin necesitar dominio propio.
+ * 2. Resend via HTTP API (`RESEND_API_KEY`).
+ * 3. Modo simulado: escribe el correo en la consola del servidor si no
+ *    hay credenciales o si el proveedor externo rechaza el destinatario.
  */
 
 const API_RESEND = "https://api.resend.com/emails";
@@ -24,7 +28,7 @@ export interface CorreoSaliente {
   html: string;
 }
 
-/** Envia un correo (o lo imprime en modo simulado). Devuelve como salio. */
+/** Envia un correo por SMTP, Resend o lo imprime en modo simulado. */
 export async function enviarCorreo(correo: CorreoSaliente): Promise<"ENVIADO" | "SIMULADO"> {
   if (!correoHabilitado()) {
     console.log(
@@ -33,6 +37,41 @@ export async function enviarCorreo(correo: CorreoSaliente): Promise<"ENVIADO" | 
     return "SIMULADO";
   }
 
+  // 1. Priorizar SMTP (ej. Gmail) si esta configurado: permite enviar a cualquier correo real
+  if (smtpHabilitado()) {
+    try {
+      const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
+      const port = Number(process.env.SMTP_PORT || 465);
+      const secure = port === 465;
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: {
+          user: process.env.SMTP_USER?.trim(),
+          pass: process.env.SMTP_PASS?.replace(/\s+/g, ""),
+        },
+      });
+
+      await transporter.sendMail({
+        from: remitenteCorreo(),
+        to: correo.para,
+        subject: correo.asunto,
+        html: correo.html,
+      });
+      return "ENVIADO";
+    } catch (error) {
+      console.error(
+        `[correo smtp] Fallo el envio SMTP a ${correo.para}:`,
+        error instanceof Error ? error.message : error,
+      );
+      if (!process.env.RESEND_API_KEY) {
+        throw error;
+      }
+    }
+  }
+
+  // 2. Resend HTTP API
   const respuesta = await fetch(API_RESEND, {
     method: "POST",
     headers: {
@@ -173,10 +212,11 @@ export async function enviarCorreoConfirmacionPedido(
     return null;
   }
 
+  const { asunto, html } = construirCorreoActualizacionEstado(pedido);
   return enviarCorreo({
     para: pedido.cliente.usuario.correo,
-    asunto: `¡Gracias por tu compra! Pedido ${pedido.numeroOrden}`,
-    html: construirCorreoConfirmacion(pedido),
+    asunto,
+    html,
   });
 }
 
