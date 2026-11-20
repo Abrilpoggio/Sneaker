@@ -135,6 +135,28 @@ export async function registrarPreferencia(
   });
 }
 
+const MOTIVOS_RECHAZO_MP: Record<string, string> = {
+  cc_rejected_insufficient_amount: "Fondos insuficientes en la tarjeta.",
+  cc_rejected_bad_filled_security_code: "Código de seguridad (CVV) inválido.",
+  cc_rejected_bad_filled_date: "Fecha de vencimiento inválida.",
+  cc_rejected_bad_filled_other: "Revisá los datos ingresados de la tarjeta.",
+  cc_rejected_Bad_filled_card_number: "Número de tarjeta inválido.",
+  cc_rejected_bad_filled_card_number: "Número de tarjeta inválido.",
+  cc_rejected_call_for_authorize: "Debés autorizar el pago con el banco emisor de tu tarjeta.",
+  cc_rejected_card_disabled: "La tarjeta no está activa. Comunicate con tu banco para activarla.",
+  cc_rejected_card_error: "No pudimos procesar tu tarjeta.",
+  cc_rejected_duplicated_payment: "Ya hiciste un pago por ese mismo monto recientemente.",
+  cc_rejected_high_risk: "El pago fue rechazado por prevención de seguridad.",
+  cc_rejected_invalid_installments: "La tarjeta no procesa pagos en esa cantidad de cuotas.",
+  cc_rejected_max_attempts: "Llegaste al límite de intentos permitidos con esta tarjeta.",
+  cc_rejected_other_reason: "La entidad emisora de la tarjeta rechazó el pago.",
+};
+
+export function traducirMotivoRechazoMP(statusDetail?: string | null): string | null {
+  if (!statusDetail) return null;
+  return MOTIVOS_RECHAZO_MP[statusDetail] ?? null;
+}
+
 /**
  * Consulta el pago en la API publica de MP (usada por el webhook para
  * no fiarse del cuerpo del POST).
@@ -151,11 +173,14 @@ export async function consultarPagoMercadoPago(pagoExternoId: string) {
   }
   const pago = (await respuesta.json()) as {
     status: string;
+    status_detail?: string | null;
     external_reference: string | null;
     payment_method_id: string | null;
   };
   return {
     estado: pago.status,
+    detalleEstado: pago.status_detail ?? null,
+    motivoRechazo: traducirMotivoRechazoMP(pago.status_detail),
     externalReference: pago.external_reference,
     metodoPago: pago.payment_method_id ?? "mercadopago",
   };
@@ -209,7 +234,7 @@ export async function iniciarPagoMercadoPago(
  */
 export async function procesarWebhookPago(
   pagoExternoId: string,
-): Promise<{ numeroOrden: string; estado: string }> {
+): Promise<{ numeroOrden: string; estado: string; motivoRechazo?: string | null }> {
   const pago = await consultarPagoMercadoPago(pagoExternoId);
   const numeroOrden = pago.externalReference ?? "";
 
@@ -234,7 +259,11 @@ export async function procesarWebhookPago(
           metodoPago: pago.metodoPago,
           pagoExternoId,
         });
-        return { numeroOrden, estado: "rejected" };
+        return {
+          numeroOrden,
+          estado: "rejected",
+          motivoRechazo: "El stock se agotó mientras se procesaba el pago.",
+        };
       }
       throw error;
     }
@@ -248,5 +277,6 @@ export async function procesarWebhookPago(
       pagoExternoId,
     });
   }
-  return { numeroOrden, estado: pago.estado };
+
+  return { numeroOrden, estado: pago.estado, motivoRechazo: pago.motivoRechazo };
 }

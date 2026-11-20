@@ -7,7 +7,11 @@ import { requireCliente } from "@/lib/permissions";
 import { enlacesReclamoPedido } from "@/lib/soporte";
 import { resolverComprador } from "@/modules/carrito/services/carrito";
 import { obtenerPedidoConfirmado } from "@/modules/checkout/services/checkout";
-import { procesarWebhookPago } from "@/modules/checkout/services/pagos";
+import {
+  consultarPagoMercadoPago,
+  procesarWebhookPago,
+  traducirMotivoRechazoMP,
+} from "@/modules/checkout/services/pagos";
 import {
   construirCorreoActualizacionEstado,
   obtenerPedidoParaCorreo,
@@ -21,7 +25,11 @@ import {
 
 type Props = {
   params: Promise<{ numeroOrden: string }>;
-  searchParams: Promise<{ payment_id?: string; collection_id?: string }>;
+  searchParams: Promise<{
+    payment_id?: string;
+    collection_id?: string;
+    status_detail?: string;
+  }>;
 };
 
 export const metadata: Metadata = { title: "Pedido · Sneaker" };
@@ -81,10 +89,14 @@ export default async function PedidoPage({ params, searchParams }: Props) {
 
   // Si el comprador vuelve desde Mercado Pago real con payment_id/collection_id,
   // verificamos el pago contra la API de MP de inmediato (idempotente) sin esperar al webhook.
+  let motivoRechazoMP: string | null = traducirMotivoRechazoMP(query.status_detail);
   const pagoIdRetorno = query.payment_id ?? query.collection_id;
   if (pagoIdRetorno && pagoIdRetorno !== "null" && mercadoPagoHabilitado()) {
     try {
-      await procesarWebhookPago(pagoIdRetorno);
+      const resultadoMP = await procesarWebhookPago(pagoIdRetorno);
+      if (resultadoMP.motivoRechazo) {
+        motivoRechazoMP = resultadoMP.motivoRechazo;
+      }
     } catch (error) {
       console.error(
         `[mercadopago] No se pudo verificar el retorno del pago ${pagoIdRetorno}:`,
@@ -100,6 +112,20 @@ export default async function PedidoPage({ params, searchParams }: Props) {
 
   if (!pedido) {
     notFound();
+  }
+
+  if (
+    pedido.estado === "RECHAZADO" &&
+    !motivoRechazoMP &&
+    pedido.pagoExternoId &&
+    mercadoPagoHabilitado()
+  ) {
+    try {
+      const infoPago = await consultarPagoMercadoPago(pedido.pagoExternoId);
+      motivoRechazoMP = infoPago.motivoRechazo;
+    } catch {
+      // Si no se puede consultar el detalle externo, se muestra el mensaje estandar.
+    }
   }
 
   const infoCorreo = pedidoCorreo ? construirCorreoActualizacionEstado(pedidoCorreo) : null;
@@ -140,6 +166,11 @@ export default async function PedidoPage({ params, searchParams }: Props) {
       <div className={`rounded-md border px-4 py-3 ${etiqueta.clase}`}>
         <p className="text-lg font-bold leading-[24px]">{etiqueta.titulo}</p>
         <p className="mt-1 text-base font-medium leading-[16px]">{etiqueta.detalle}</p>
+        {pedido.estado === "RECHAZADO" && motivoRechazoMP && (
+          <p className="mt-1.5 text-sm font-semibold">
+            Motivo informado por Mercado Pago: {motivoRechazoMP}
+          </p>
+        )}
         {pedido.estado === "PENDIENTE" &&
           (mercadoPagoHabilitado() && pedido.preferenciaId ? (
             <a
