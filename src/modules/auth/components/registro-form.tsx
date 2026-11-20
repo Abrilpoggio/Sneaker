@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { signIn } from "@/lib/auth-client";
 import {
@@ -24,6 +24,13 @@ export function RegistroForm({
     accionRegistrar,
     estadoInicial,
   );
+
+  const cargando = pendiente || Boolean(estado.redirectTo);
+
+  useEffect(() => {
+    if (!estado.redirectTo) return;
+    window.location.assign(estado.redirectTo);
+  }, [estado.redirectTo]);
 
   return (
     <div className="flex min-h-[519px] w-full max-w-[469px] flex-col items-center rounded-[40px] bg-[linear-gradient(180deg,rgba(255,0,7,0.8)_0%,rgba(153,0,4,1)_100%)] px-6 pt-[43px] pb-[36px] shadow-[inset_4px_4px_3.7px_rgba(0,0,0,0.25)]">
@@ -131,10 +138,10 @@ export function RegistroForm({
         {/* Boton Registrarme (Frame 10: 163 x 39, #2C2C2C, radio 9px) */}
         <button
           type="submit"
-          disabled={pendiente}
+          disabled={cargando}
           className="mt-[20px] flex h-[39px] w-[163px] items-center justify-center rounded-[9px] bg-[#2C2C2C] text-[24px] font-normal leading-[29px] text-white shadow-[6px_5px_6.5px_rgba(0,0,0,0.25),inset_0_4px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
-          {pendiente ? "..." : "Registrarme"}
+          {cargando ? "..." : "Registrarme"}
         </button>
       </form>
 

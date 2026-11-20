@@ -228,15 +228,32 @@ export async function accionRegistrar(
   }
 
   const destino = normalizarCallbackUrl(formData.get("callbackUrl"));
-  const qs = new URLSearchParams({
-    exito: "Cuenta creada. Ya podés ingresar.",
-  });
-  if (destino !== "/") {
-    qs.set("callbackUrl", destino);
-  }
 
-  revalidatePath("/login");
-  redirect(`/login?${qs.toString()}`);
+  // Iniciar sesion automaticamente con la cuenta recien creada para evitar
+  // que una sesion previa (por ej. ADMIN) o el autocompletado del navegador
+  // en /login deje al usuario en otra cuenta.
+  try {
+    await signIn("credentials", {
+      correo,
+      password: datos.password,
+      redirect: false,
+      redirectTo: destino,
+    });
+    revalidatePath("/", "layout");
+    return {
+      exito: "¡Cuenta creada! Ingresando...",
+      redirectTo: destino,
+    };
+  } catch {
+    const qs = new URLSearchParams({
+      exito: "Cuenta creada. Ya podés ingresar.",
+    });
+    if (destino !== "/") {
+      qs.set("callbackUrl", destino);
+    }
+    revalidatePath("/login");
+    redirect(`/login?${qs.toString()}`);
+  }
 }
 
 /**
