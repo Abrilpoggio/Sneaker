@@ -28,9 +28,13 @@ export interface CorreoSaliente {
   html: string;
 }
 
+const REGEX_DOMINIO_PRUEBA = /\.(test|example|invalid|localhost)$/i;
+
 /** Envia un correo por SMTP, Resend o lo imprime en modo simulado. */
 export async function enviarCorreo(correo: CorreoSaliente): Promise<"ENVIADO" | "SIMULADO"> {
-  if (!correoHabilitado()) {
+  const destinatario = correo.para.trim().toLowerCase();
+
+  if (!correoHabilitado() || REGEX_DOMINIO_PRUEBA.test(destinatario)) {
     console.log(
       `\n[correo simulado] de: ${remitenteCorreo()} | para: ${correo.para}\nasunto: ${correo.asunto}\n${correo.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()}\n`,
     );
